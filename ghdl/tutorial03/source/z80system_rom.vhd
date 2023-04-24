@@ -21,10 +21,9 @@ begin
 	process (clk_i)
 		variable addr : std_logic_vector(15 downto 0);
 	begin
-		if (falling_edge(clk_i) or rising_edge(clk_i)) then
+		if (falling_edge(clk_i)) then
 			if (mreqn_i = '0') then
 				addr := addr_i;
-			    --report "latch addr to tmp " & to_hstring(addr);
 			end if;
 			if (rd_i = '0') then
 				if (unsigned(addr) < 16384) then
@@ -32,11 +31,11 @@ begin
 					report "read rom[ " & to_hstring(addr) & "] =" & 
 					to_hstring(rom_image(to_integer(unsigned(addr))));
 				else
-					data_o <= "LLLLLLLL";
+					data_o <= "ZZZZZZZZ";
 				end if;
 			end if;
-			if (rising_edge(rd_i) or rising_edge(mreqn_i)) then
-				data_o <= "LLLLLLLL";
+			if (rd_i = '1') then
+				data_o <= "ZZZZZZZZ";
 			end if;
 		end if;
 	end process;
