@@ -26,8 +26,8 @@ run:
 	echo "RUN"
 	date
 	$(GHDL_CMD) -r $(GHDL_FLAGS) --workdir=simulation -P=simulation --work=work z80system_tb\
-	   	--stop-time=1000ms --ieee-asserts=disable  --assert-level=error --max-stack-alloc=0
-#	--wave=$(SIMDIR)/out.ghw 
+	   	--stop-time=3000ms --ieee-asserts=disable  --assert-level=error --max-stack-alloc=0
+#--wave=$(SIMDIR)/out.ghw 
 	date
 view:
 	echo "VIEW"
