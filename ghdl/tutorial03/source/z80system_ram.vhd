@@ -34,19 +34,19 @@ begin
 					end if;
 				end if;
 				if (rd_i = '0')  then
-					report "read from addr " & to_hstring(addr);
+					--report "read from addr " & to_hstring(addr);
 					if (unsigned(addr) > 16383) and (unsigned(addr) < 65536) then
 						report "reading from ram[" & to_hstring(addr) & "]=" &
 						to_hstring(ram_data(to_integer(unsigned(addr))-16384));
 						data_o <= ram_data(to_integer(unsigned(addr))-16384);
 					else
-						data_o <= "LLLLLLLL";
+						data_o <= "ZZZZZZZZ";
 					end if;
 				end if;
-				if (rising_edge(rd_i) or rising_edge(mreqn_i)) then
-					data_o <= "LLLLLLLL";
+				if rd_i = '1' or mreqn_i = '1' then
+					data_o <= "ZZZZZZZZ";
 				end if;
-				if (wr_i = '0') then
+				if wr_i = '0' then
 					if (unsigned(addr) > 16383) and (unsigned(addr) < 65536) then
 						ram_data(to_integer(unsigned(addr))-16384) <= data_i;
 						report "writing to ram[" & to_hstring(addr) & "]=" & to_hstring(data_i) ;
