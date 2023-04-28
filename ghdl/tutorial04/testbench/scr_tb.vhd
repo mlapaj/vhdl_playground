@@ -1,6 +1,7 @@
 library ieee;
 use ieee.std_logic_1164.all;
 use ieee.numeric_std.all;
+use ieee.numeric_std_unsigned.all;
 use ieee.math_real.all;
 
 entity scr_tb is
@@ -41,8 +42,8 @@ architecture test of scr_tb is
 		 );
   end component;
 
-  signal tb_pos_x    : std_logic_vector(7 downto 0);
-  signal tb_pos_y    : std_logic_vector(7 downto 0);
+  signal tb_pos_x    : std_logic_vector(7 downto 0) := "00000000";
+  signal tb_pos_y    : std_logic_vector(7 downto 0) := "00000000";
   signal tb_mreqn    : std_logic;
   signal tb_rd       : std_logic;
   signal tb_addr     : std_logic_vector(15 downto 0);
@@ -53,12 +54,24 @@ begin
   -- -------------------------------------------------------------------------------------------
   clk_gen <= not clk_gen after (t_clock_c/2);
   rst_gen <= '0', '1' after 60*(t_clock_c/2);
+
+  -- request for draw particular pixel in screen
   process (clk_gen)
   begin
 		if (rising_edge(clk_gen)) then
-			tb_pos_x <= (to_integer(unsigned(tb_pos_x)) + 1);
+			if (unsigned(tb_pos_x) < 255) then
+				tb_pos_x <= (std_logic_vector(unsigned(tb_pos_x)) + 1);
+		    else
+				tb_pos_x <= (others => '0');
+				if (unsigned(tb_pos_y) < 191) then
+					tb_pos_y <= (std_logic_vector(unsigned(tb_pos_y)) + 1);
+				else
+					tb_pos_y <= (others => '0');
+				end if;
+			end if;
 		end if;
   end process;
+
   dut_scr : scr port map (
 						clk_i => clk_gen,
 						rstn_i => rst_gen,

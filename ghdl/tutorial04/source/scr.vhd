@@ -26,7 +26,7 @@ begin
 	process (clk_i)
 	begin
 		if (rising_edge(clk_i)) then
-			report "This is a test";
+			report "This is x " & to_hstring(pos_x) & " and y " & to_hstring(pos_y);
 		end if;
 	end process;
 end architecture;
