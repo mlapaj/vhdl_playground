@@ -14,11 +14,11 @@ for y in range (192):
         col = 0;
         new_y = ((y & 0b111) << 3) | ((y >> 3) & 0b111) | (y & 0b11000000)
         print("y is {} new_y {}".format(y,new_y))
-        pos = new_y*32 + (x // 8);
+        pos = (new_y << 5) + (x >> 3);
 
-        print('fetching data from {} {} {} data {}'.format(new_y*32,x//8,x % 8,pos))
+        print('fetching data from {} {} {} data {}'.format((new_y << 5),x >> 3,x & 0b111,pos))
         data = fileContent[pos]
-        if (data & (1 << ((7-x) % 8))):
+        if (data & (1 << ((7-x) & 0b111))):
             col = 255
         img_data[y, x, 0] = col
         img_data[y, x, 1] = col
