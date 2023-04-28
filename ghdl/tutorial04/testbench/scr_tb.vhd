@@ -46,8 +46,9 @@ architecture test of scr_tb is
   signal tb_pos_y    : std_logic_vector(7 downto 0) := "00000000";
   signal tb_mreqn    : std_logic;
   signal tb_rd       : std_logic;
-  signal tb_addr     : std_logic_vector(15 downto 0);
+  signal tb_addr     : std_logic_vector(15 downto 0) := "ZZZZZZZZZZZZZZZZ";
   signal tb_data     : std_logic_vector(7 downto 0);
+  signal cnt         : unsigned(2 downto 0);
 begin
 
   -- Clock/Reset Generator ------------------------------------------------------------------
@@ -58,17 +59,28 @@ begin
   -- request for draw particular pixel in screen
   process (clk_gen)
   begin
-		if (rising_edge(clk_gen)) then
-			if (unsigned(tb_pos_x) < 255) then
-				tb_pos_x <= (std_logic_vector(unsigned(tb_pos_x)) + 1);
-		    else
-				tb_pos_x <= (others => '0');
-				if (unsigned(tb_pos_y) < 191) then
-					tb_pos_y <= (std_logic_vector(unsigned(tb_pos_y)) + 1);
-				else
-					tb_pos_y <= (others => '0');
-				end if;
-			end if;
+	  if (rst_gen = '0') then
+		  tb_pos_x <= (others => '0');
+		  tb_pos_y <= (others => '0');
+		  cnt <= "000";
+	  elsif (rising_edge(clk_gen)) then
+		  if (cnt < 4) then
+			  cnt <= cnt + 1;
+			  report "increasing counter";
+		  else
+			  report "handling screen";
+			  cnt <= "000";
+			  if (unsigned(tb_pos_x) < 255) then
+				  tb_pos_x <= (std_logic_vector(unsigned(tb_pos_x)) + 1);
+			  else
+				  tb_pos_x <= (others => '0');
+				  if (unsigned(tb_pos_y) < 191) then
+					  tb_pos_y <= (std_logic_vector(unsigned(tb_pos_y)) + 1);
+				  else
+					  tb_pos_y <= (others => '0');
+				  end if;
+			  end if;
+		  end if;
 		end if;
   end process;
 

@@ -26,9 +26,10 @@ begin
 				addr := addr_i;
 			end if;
 			if rd_i = '0' and mreqn_i = '0' then
+				--report "read rom !!!!!!!" & to_hstring(addr_i);
 				if (unsigned(addr) < 16384) then
 					data_o <= rom_image(to_integer(unsigned(addr)));
-					--report "read rom[ " & to_hstring(addr) & "] =" & 
+					--report "read rom[ " & to_hstring(addr) & "] =" &
 					--to_hstring(rom_image(to_integer(unsigned(addr))));
 				else
 					data_o <= "ZZZZZZZZ";

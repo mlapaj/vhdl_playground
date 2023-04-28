@@ -23,7 +23,7 @@ run:
 	@echo "RUN"
 	@date
 	$(GHDL_CMD) -r $(GHDL_FLAGS) --workdir=simulation -P=simulation --work=work scr_tb\
-	   	--stop-time=10ms --ieee-asserts=disable  --assert-level=error --max-stack-alloc=0
+	   	--stop-time=50ms --ieee-asserts=disable  --assert-level=error --max-stack-alloc=0
 #--wave=$(SIMDIR)/out.ghw
 	@date
 view:
