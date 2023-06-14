@@ -1,0 +1,18 @@
+//Copyright (C)2014-2022 Gowin Semiconductor Corporation.
+//All rights reserved. 
+//File Title: Physical Constraints file
+//GOWIN Version: 1.9.8.09 Education
+//Part Number: GW2A-LV18PG256C8/I7
+//Device: GW2A-18C
+//Created Time: Sat 04 15 00:04:20 2023
+
+IO_LOC "uart0_txd_o" M11;
+IO_PORT "uart0_txd_o" PULL_MODE=UP DRIVE=8;
+IO_PORT "gpio_o[1]" PULL_MODE=UP DRIVE=8;
+IO_PORT "gpio_o[0]" PULL_MODE=UP DRIVE=8;
+IO_LOC "uart0_rxd_i" T13;
+IO_PORT "uart0_rxd_i" PULL_MODE=UP;
+IO_LOC "rstn_i" T5;
+IO_PORT "rstn_i" PULL_MODE=UP;
+IO_LOC "clk_i" H11;
+IO_PORT "clk_i" PULL_MODE=UP;

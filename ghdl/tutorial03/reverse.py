@@ -1,8 +1,8 @@
 #!/usr/bin/python3
 
 print("Hello world")
-inFileName = "o2"
-outFileName = "o3"
+inFileName = "out_ram_bytes.txt"
+outFileName = "out_ram_bytes_reversed.txt"
 with open(inFileName, mode='rb') as inFile:
     fileContent = inFile.read()
 with open(outFileName, mode='wb') as outFile:

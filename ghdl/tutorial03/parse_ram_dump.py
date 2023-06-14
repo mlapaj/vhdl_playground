@@ -1,8 +1,8 @@
 #!/usr/bin/python3
 
 print("Hello world")
-inFileName = "o"
-outFileName = "o2"
+inFileName = "out_ram_bits.txt"
+outFileName = "out_ram_bytes.txt"
 with open(inFileName, mode='rb') as inFile:
     fileContent = inFile.read()
 with open(outFileName, mode='wb') as outFile:

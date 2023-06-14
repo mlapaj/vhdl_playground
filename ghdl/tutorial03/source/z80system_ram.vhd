@@ -57,7 +57,7 @@ begin
     process
     begin
         wait for 900 ms;
-        file_open(file_ram, "out_ram.txt",  write_mode);
+        file_open(file_ram, "out_ram_bits.txt",  write_mode);
         report "writing ram to file";
         write(file_ram, ram_data);
         file_close(file_ram);
