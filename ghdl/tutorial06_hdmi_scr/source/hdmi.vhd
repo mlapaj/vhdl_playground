@@ -69,7 +69,10 @@ architecture basic of hdmi is
     end component;
     -- screen details
     constant zx_res_x   : integer := 256;
-    constant zx_res_y   : integer := 192;
+	constant zx_res_y   : integer := 192;
+    constant zx_scale   : integer := 3;
+	signal zx_counter_x : integer range 0 to zx_res_x;
+	signal zx_counter_y : integer range 0 to zx_res_y;
 
 begin
 
@@ -104,21 +107,48 @@ pll_out <= clk_i;
 
 -- takes care of synchronisation signals
 process (pll_out)
+	variable scale_counter_x : integer range 0 to zx_scale;
+	variable scale_counter_y : integer range 0 to zx_scale;
 begin
 	if (falling_edge(pll_out)) then
 		if (rstn_i = '0') then
 				counter_y <= 0;
 				counter_x <= 0;
+				scale_counter_x := 0;
+				scale_counter_y := 0;
 		else
+
 			if counter_x = (PX_WIDTH + PX_FRONT_PORCH + PX_SYNC_PULSE + PX_BACK_PORCH - 1) then
 				counter_x <= 0;
+				zx_counter_x <= 0;
+				scale_counter_x := 0;
 				if counter_y = (LINE_HEIGHT + LINE_FRONT_PORCH + LINE_SYNC_PULSE + LINE_BACK_PORCH - 1) then
 					counter_y <= 0;
+				    zx_counter_y <= 0;
+					scale_counter_y := 0;
 				else
 					counter_y <= counter_y + 1;
+					-- additional counter for screen scaling
+					scale_counter_y := scale_counter_y + 1;
+					if (scale_counter_y = zx_scale) then
+						scale_counter_y := 0;
+						if (zx_counter_y < zx_res_y) then
+							zx_counter_y <= zx_counter_y + 1;
+						end if;
+					end if;
+
 				end if;
 			else
 				counter_x <= counter_x + 1;
+				-- additional counter for screen scaling
+				scale_counter_x := scale_counter_x + 1;
+				if (scale_counter_x = zx_scale) then
+					scale_counter_x := 0;
+					if (zx_counter_x < zx_res_x) then
+						zx_counter_x <= zx_counter_x + 1;
+					end if;
+				end if;
+
 			end if;
 
 			if counter_x >= (PX_WIDTH + PX_FRONT_PORCH) AND counter_x < (PX_WIDTH + PX_FRONT_PORCH + PX_SYNC_PULSE) then
@@ -153,10 +183,10 @@ begin
 		else
 			if (counter_x < PX_WIDTH) and (counter_y < LINE_HEIGHT) then
 				rgb_de_i <= '1';
-				if ((counter_x) < zx_res_x*3) and (counter_y < zx_res_y*3) then
+				if ((counter_x) < zx_res_x*zx_scale) and (counter_y < zx_res_y*zx_scale) then
                     -- remove divide operator
-					tmp_counter_x := std_logic_vector(to_unsigned(counter_x/3,8));
-					tmp_counter_y := std_logic_vector(to_unsigned(counter_y/3,8));
+					tmp_counter_x := std_logic_vector(to_unsigned(zx_counter_x,8));
+					tmp_counter_y := std_logic_vector(to_unsigned(zx_counter_y,8));
 					addr_scr := "000" & tmp_counter_y(7) &
 					                    tmp_counter_y(6) &
 										tmp_counter_y(2) &
