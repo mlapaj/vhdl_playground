@@ -1,10 +1,11 @@
---Copyright (C)2014-2022 Gowin Semiconductor Corporation.
+--Copyright (C)2014-2023 Gowin Semiconductor Corporation.
 --All rights reserved.
 --File Title: IP file
---GOWIN Version: V1.9.8.09 Education
+--GOWIN Version: V1.9.8.11 Education
 --Part Number: GW2A-LV18PG256C8/I7
---Device: GW2A-18C
---Created Time: Tue Apr 25 16:14:14 2023
+--Device: GW2A-18
+--Device Version: C
+--Created Time: Mon Jul 31 12:39:02 2023
 
 library IEEE;
 use IEEE.std_logic_1164.all;
@@ -12,6 +13,7 @@ use IEEE.std_logic_1164.all;
 entity Gowin_rPLL is
     port (
         clkout: out std_logic;
+        clkoutd: out std_logic;
         clkin: in std_logic
     );
 end Gowin_rPLL;
@@ -20,7 +22,6 @@ architecture Behavioral of Gowin_rPLL is
 
     signal lock_o: std_logic;
     signal clkoutp_o: std_logic;
-    signal clkoutd_o: std_logic;
     signal clkoutd3_o: std_logic;
     signal gw_gnd: std_logic;
     signal FBDSEL_i: std_logic_vector(5 downto 0);
@@ -106,7 +107,7 @@ begin
             CLKOUT_BYPASS => "false",
             CLKOUTP_BYPASS => "false",
             CLKOUTD_BYPASS => "false",
-            DYN_SDIV_SEL => 2,
+            DYN_SDIV_SEL => 10,
             CLKOUTD_SRC => "CLKOUT",
             CLKOUTD3_SRC => "CLKOUT"
         )
@@ -114,7 +115,7 @@ begin
             CLKOUT => clkout,
             LOCK => lock_o,
             CLKOUTP => clkoutp_o,
-            CLKOUTD => clkoutd_o,
+            CLKOUTD => clkoutd,
             CLKOUTD3 => clkoutd3_o,
             RESET => gw_gnd,
             RESET_P => gw_gnd,

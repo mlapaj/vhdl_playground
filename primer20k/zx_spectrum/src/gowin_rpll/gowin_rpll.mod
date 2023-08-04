@@ -1,5 +1,6 @@
 -series GW2A
--device GW2A-18C
+-device GW2A-18
+-device_version C
 -package PBGA256
 -part_number GW2A-LV18PG256C8/I7
 
@@ -17,6 +18,7 @@
 -fbdiv_sel 11
 -dyn_odiv_sel false
 -odiv_sel 8
+-dyn_sdiv_sel 10
 -dyn_da_en true
 -rst_sig false
 -rst_sig_p false
@@ -27,6 +29,7 @@
 -clkout_ft_dir 1
 -en_clkoutp false
 -clkoutp_bypass false
--en_clkoutd false
+-en_clkoutd true
 -clkoutd_bypass false
+-clkoutd_src CLKOUT
 -en_clkoutd3 false

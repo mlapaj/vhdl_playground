@@ -1,23 +1,23 @@
 GowinSynthesis start
 Running parser ...
-Analyzing Verilog file '/media/cod3r/2f2867b9-7e02-4998-978c-2568917571bd/Gowin/ipcore/DVI_TX/data/dvi_tx_top.v'
-Analyzing included file 'top_define.v'("/media/cod3r/2f2867b9-7e02-4998-978c-2568917571bd/Gowin/ipcore/DVI_TX/data/dvi_tx_top.v":26)
-Back to file '/media/cod3r/2f2867b9-7e02-4998-978c-2568917571bd/Gowin/ipcore/DVI_TX/data/dvi_tx_top.v'("/media/cod3r/2f2867b9-7e02-4998-978c-2568917571bd/Gowin/ipcore/DVI_TX/data/dvi_tx_top.v":26)
-Analyzing included file '/media/cod3r/2f2867b9-7e02-4998-978c-2568917571bd/Gowin/ipcore/DVI_TX/data/static_macro_define.v'("/media/cod3r/2f2867b9-7e02-4998-978c-2568917571bd/Gowin/ipcore/DVI_TX/data/dvi_tx_top.v":27)
-Back to file '/media/cod3r/2f2867b9-7e02-4998-978c-2568917571bd/Gowin/ipcore/DVI_TX/data/dvi_tx_top.v'("/media/cod3r/2f2867b9-7e02-4998-978c-2568917571bd/Gowin/ipcore/DVI_TX/data/dvi_tx_top.v":27)
-Analyzing included file 'dvi_tx_defines.v'("/media/cod3r/2f2867b9-7e02-4998-978c-2568917571bd/Gowin/ipcore/DVI_TX/data/dvi_tx_top.v":28)
-Back to file '/media/cod3r/2f2867b9-7e02-4998-978c-2568917571bd/Gowin/ipcore/DVI_TX/data/dvi_tx_top.v'("/media/cod3r/2f2867b9-7e02-4998-978c-2568917571bd/Gowin/ipcore/DVI_TX/data/dvi_tx_top.v":28)
-Analyzing Verilog file '/media/cod3r/2f2867b9-7e02-4998-978c-2568917571bd/Gowin/ipcore/DVI_TX/data/rgb2dvi.vp'
-Analyzing included file 'top_define.v'("/media/cod3r/2f2867b9-7e02-4998-978c-2568917571bd/Gowin/ipcore/DVI_TX/data/rgb2dvi.vp":352)
-Back to file '/media/cod3r/2f2867b9-7e02-4998-978c-2568917571bd/Gowin/ipcore/DVI_TX/data/rgb2dvi.vp'("/media/cod3r/2f2867b9-7e02-4998-978c-2568917571bd/Gowin/ipcore/DVI_TX/data/rgb2dvi.vp":352)
-Analyzing included file '/media/cod3r/2f2867b9-7e02-4998-978c-2568917571bd/Gowin/ipcore/DVI_TX/data/static_macro_define.v'("/media/cod3r/2f2867b9-7e02-4998-978c-2568917571bd/Gowin/ipcore/DVI_TX/data/rgb2dvi.vp":352)
-Back to file '/media/cod3r/2f2867b9-7e02-4998-978c-2568917571bd/Gowin/ipcore/DVI_TX/data/rgb2dvi.vp'("/media/cod3r/2f2867b9-7e02-4998-978c-2568917571bd/Gowin/ipcore/DVI_TX/data/rgb2dvi.vp":352)
-Analyzing included file 'dvi_tx_defines.v'("/media/cod3r/2f2867b9-7e02-4998-978c-2568917571bd/Gowin/ipcore/DVI_TX/data/rgb2dvi.vp":352)
-Back to file '/media/cod3r/2f2867b9-7e02-4998-978c-2568917571bd/Gowin/ipcore/DVI_TX/data/rgb2dvi.vp'("/media/cod3r/2f2867b9-7e02-4998-978c-2568917571bd/Gowin/ipcore/DVI_TX/data/rgb2dvi.vp":352)
-Compiling module 'DVI_TX_Top'("/media/cod3r/2f2867b9-7e02-4998-978c-2568917571bd/Gowin/ipcore/DVI_TX/data/dvi_tx_top.v":30)
-Compiling module '**'("/media/cod3r/2f2867b9-7e02-4998-978c-2568917571bd/Gowin/ipcore/DVI_TX/data/rgb2dvi.vp":0)
-Compiling module '**'("/media/cod3r/2f2867b9-7e02-4998-978c-2568917571bd/Gowin/ipcore/DVI_TX/data/rgb2dvi.vp":0)
-WARN  (EX3791) : Expression size ** truncated to fit in target size **("/media/cod3r/2f2867b9-7e02-4998-978c-2568917571bd/Gowin/ipcore/DVI_TX/data/rgb2dvi.vp":0)
+Analyzing Verilog file '/home/cod3r/Data/Gowin/IDE/ipcore/DVI_TX/data/dvi_tx_top.v'
+Analyzing included file 'top_define.v'("/home/cod3r/Data/Gowin/IDE/ipcore/DVI_TX/data/dvi_tx_top.v":26)
+Back to file '/home/cod3r/Data/Gowin/IDE/ipcore/DVI_TX/data/dvi_tx_top.v'("/home/cod3r/Data/Gowin/IDE/ipcore/DVI_TX/data/dvi_tx_top.v":26)
+Analyzing included file '/home/cod3r/Data/Gowin/IDE/ipcore/DVI_TX/data/static_macro_define.v'("/home/cod3r/Data/Gowin/IDE/ipcore/DVI_TX/data/dvi_tx_top.v":27)
+Back to file '/home/cod3r/Data/Gowin/IDE/ipcore/DVI_TX/data/dvi_tx_top.v'("/home/cod3r/Data/Gowin/IDE/ipcore/DVI_TX/data/dvi_tx_top.v":27)
+Analyzing included file 'dvi_tx_defines.v'("/home/cod3r/Data/Gowin/IDE/ipcore/DVI_TX/data/dvi_tx_top.v":28)
+Back to file '/home/cod3r/Data/Gowin/IDE/ipcore/DVI_TX/data/dvi_tx_top.v'("/home/cod3r/Data/Gowin/IDE/ipcore/DVI_TX/data/dvi_tx_top.v":28)
+Analyzing Verilog file '/home/cod3r/Data/Gowin/IDE/ipcore/DVI_TX/data/rgb2dvi.vp'
+Analyzing included file 'top_define.v'("/home/cod3r/Data/Gowin/IDE/ipcore/DVI_TX/data/rgb2dvi.vp":352)
+Back to file '/home/cod3r/Data/Gowin/IDE/ipcore/DVI_TX/data/rgb2dvi.vp'("/home/cod3r/Data/Gowin/IDE/ipcore/DVI_TX/data/rgb2dvi.vp":352)
+Analyzing included file '/home/cod3r/Data/Gowin/IDE/ipcore/DVI_TX/data/static_macro_define.v'("/home/cod3r/Data/Gowin/IDE/ipcore/DVI_TX/data/rgb2dvi.vp":352)
+Back to file '/home/cod3r/Data/Gowin/IDE/ipcore/DVI_TX/data/rgb2dvi.vp'("/home/cod3r/Data/Gowin/IDE/ipcore/DVI_TX/data/rgb2dvi.vp":352)
+Analyzing included file 'dvi_tx_defines.v'("/home/cod3r/Data/Gowin/IDE/ipcore/DVI_TX/data/rgb2dvi.vp":352)
+Back to file '/home/cod3r/Data/Gowin/IDE/ipcore/DVI_TX/data/rgb2dvi.vp'("/home/cod3r/Data/Gowin/IDE/ipcore/DVI_TX/data/rgb2dvi.vp":352)
+Compiling module 'DVI_TX_Top'("/home/cod3r/Data/Gowin/IDE/ipcore/DVI_TX/data/dvi_tx_top.v":30)
+Compiling module '**'("/home/cod3r/Data/Gowin/IDE/ipcore/DVI_TX/data/rgb2dvi.vp":0)
+Compiling module '**'("/home/cod3r/Data/Gowin/IDE/ipcore/DVI_TX/data/rgb2dvi.vp":0)
+WARN  (EX3791) : Expression size ** truncated to fit in target size **("/home/cod3r/Data/Gowin/IDE/ipcore/DVI_TX/data/rgb2dvi.vp":0)
 NOTE  (EX0101) : Current top module is "DVI_TX_Top"
 [5%] Running netlist conversion ...
 Running device independent optimization ...

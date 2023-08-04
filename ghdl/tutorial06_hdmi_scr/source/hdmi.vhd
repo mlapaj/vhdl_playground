@@ -59,7 +59,7 @@ architecture basic of hdmi is
             O_tmds_data_n: out std_logic_vector(2 downto 0)
         );
     end component;
-	-- testbench, removed
+
     -- PLL component created by Gowin
     component Gowin_rPLL
         port (
@@ -68,11 +68,12 @@ architecture basic of hdmi is
         );
     end component;
     -- screen details
-    constant zx_res_x   : integer := 256;
-	constant zx_res_y   : integer := 192;
-    constant zx_scale   : integer := 3;
-	signal zx_counter_x : integer range 0 to zx_res_x;
-	signal zx_counter_y : integer range 0 to zx_res_y;
+    constant zx_screen_res_x   : integer := 256;
+	constant zx_screen_res_y   : integer := 192;
+    constant zx_screen_scale   : integer := 3;
+    constant zx_screen_offset   : integer := 100;
+	signal zx_screen_counter_x : integer range 0 to (PX_WIDTH + PX_FRONT_PORCH + PX_SYNC_PULSE + PX_BACK_PORCH + 1)/zx_screen_scale;
+	signal zx_screen_counter_y : integer range 0 to (PX_WIDTH + PX_FRONT_PORCH + PX_SYNC_PULSE + PX_BACK_PORCH + 1)/zx_screen_scale;
 
 begin
 
@@ -107,8 +108,8 @@ pll_out <= clk_i;
 
 -- takes care of synchronisation signals
 process (pll_out)
-	variable scale_counter_x : integer range 0 to zx_scale;
-	variable scale_counter_y : integer range 0 to zx_scale;
+	variable scale_counter_x : integer range 0 to zx_screen_scale;
+	variable scale_counter_y : integer range 0 to zx_screen_scale;
 begin
 	if (falling_edge(pll_out)) then
 		if (rstn_i = '0') then
@@ -120,21 +121,19 @@ begin
 
 			if counter_x = (PX_WIDTH + PX_FRONT_PORCH + PX_SYNC_PULSE + PX_BACK_PORCH - 1) then
 				counter_x <= 0;
-				zx_counter_x <= 0;
+				zx_screen_counter_x <= 0;
 				scale_counter_x := 0;
 				if counter_y = (LINE_HEIGHT + LINE_FRONT_PORCH + LINE_SYNC_PULSE + LINE_BACK_PORCH - 1) then
 					counter_y <= 0;
-				    zx_counter_y <= 0;
+				    zx_screen_counter_y <= 0;
 					scale_counter_y := 0;
 				else
 					counter_y <= counter_y + 1;
 					-- additional counter for screen scaling
 					scale_counter_y := scale_counter_y + 1;
-					if (scale_counter_y = zx_scale) then
+					if (scale_counter_y = zx_screen_scale) then
 						scale_counter_y := 0;
-						if (zx_counter_y < zx_res_y) then
-							zx_counter_y <= zx_counter_y + 1;
-						end if;
+						zx_screen_counter_y <= zx_screen_counter_y + 1;
 					end if;
 
 				end if;
@@ -142,11 +141,9 @@ begin
 				counter_x <= counter_x + 1;
 				-- additional counter for screen scaling
 				scale_counter_x := scale_counter_x + 1;
-				if (scale_counter_x = zx_scale) then
+				if (scale_counter_x = zx_screen_scale) then
 					scale_counter_x := 0;
-					if (zx_counter_x < zx_res_x) then
-						zx_counter_x <= zx_counter_x + 1;
-					end if;
+					zx_screen_counter_x <= zx_screen_counter_x + 1;
 				end if;
 
 			end if;
@@ -181,12 +178,16 @@ begin
             rgb_b_i <= (others => '0');
             rgb_r_i <= (others => '0');
 		else
+			-- ensure that we are working at visible screen part
 			if (counter_x < PX_WIDTH) and (counter_y < LINE_HEIGHT) then
 				rgb_de_i <= '1';
-				if ((counter_x) < zx_res_x*zx_scale) and (counter_y < zx_res_y*zx_scale) then
-                    -- remove divide operator
-					tmp_counter_x := std_logic_vector(to_unsigned(zx_counter_x,8));
-					tmp_counter_y := std_logic_vector(to_unsigned(zx_counter_y,8));
+				-- we will not fill whole screen, we are taking
+				-- some part of it
+				if (zx_screen_counter_x >= zx_screen_offset) and (zx_screen_counter_x < (zx_screen_res_x + zx_screen_offset)) and
+				   (zx_screen_counter_y < zx_screen_res_y)
+				   then
+					tmp_counter_x := std_logic_vector(to_unsigned(zx_screen_counter_x-zx_screen_offset,8));
+					tmp_counter_y := std_logic_vector(to_unsigned(zx_screen_counter_y,8));
 					addr_scr := "000" & tmp_counter_y(7) &
 					                    tmp_counter_y(6) &
 										tmp_counter_y(2) &

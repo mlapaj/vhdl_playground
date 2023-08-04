@@ -1,11 +1,11 @@
 --
 --Written by GowinSynthesis
---Product Version "GowinSynthesis V1.9.8.09 Education"
---Tue Apr 25 14:52:35 2023
+--Product Version "V1.9.8.11 Education"
+--Mon Jul 31 12:55:46 2023
 
 --Source file index table:
---file0 "\/media/cod3r/2f2867b9-7e02-4998-978c-2568917571bd/Gowin/ipcore/DVI_TX/data/dvi_tx_top.v"
---file1 "\/media/cod3r/2f2867b9-7e02-4998-978c-2568917571bd/Gowin/ipcore/DVI_TX/data/rgb2dvi.vp"
+--file0 "\/home/cod3r/Data/Gowin/IDE/ipcore/DVI_TX/data/dvi_tx_top.v"
+--file1 "\/home/cod3r/Data/Gowin/IDE/ipcore/DVI_TX/data/rgb2dvi.vp"
 library ieee;
 use ieee.std_logic_1164.all;
 use ieee.numeric_std.all;
