@@ -41,33 +41,25 @@ entity ula is
 end entity;
 
 architecture basic of ula is
+		signal video_process : std_logic := '0';
 begin
+
+	video_process <= '1'         when vid_mreqn_i = '0' else '0';
+	mem_mreqn_o   <= vid_mreqn_i when video_process='1' else cpu_mreqn_i;
+	mem_rd_o      <= vid_rd_i    when video_process='1' else cpu_rd_i;
+	mem_wr_o      <= vid_wr_i    when video_process='1' else cpu_wr_i;
+	mem_addr_o    <= vid_addr_i  when video_process='1' else cpu_addr_i;
+	mem_data_o    <= vid_data_i  when video_process='1' else cpu_data_i;
+	vid_data_o    <= mem_data_i  when video_process='1' else "00000000";
+	cpu_data_o    <= mem_data_i  when video_process='0' else "00000000";
 	process (clk_i)
 		variable cnt : integer range  0 to 3;
-		variable video_process : std_logic := '0';
 	begin
 		-- rising or falling
 		if (rstn_i = '0') then
 			cnt := 0;
 			clk_cpu_o <= '0';
 		else
-			if (vid_mreqn_i = '0') then
-				video_process := '1';
-				mem_mreqn_o <= vid_mreqn_i;
-				mem_rd_o    <= vid_rd_i;
-				mem_wr_o    <= vid_wr_i;
-				mem_addr_o  <= vid_addr_i;
-				mem_data_o  <= vid_data_i;
-				vid_data_o  <= mem_data_i ;
-			else
-				video_process := '0';
-				mem_mreqn_o <= cpu_mreqn_i;
-				mem_rd_o    <= cpu_rd_i;
-				mem_wr_o    <= cpu_wr_i;
-				mem_addr_o  <= cpu_addr_i;
-				mem_data_o  <= cpu_data_i;
-				cpu_data_o  <= mem_data_i ;
-			end if;
 			if ((rising_edge(clk_i)) and (video_process = '0')) then
 				if (cnt < 3) then
 					cnt := cnt + 1;
