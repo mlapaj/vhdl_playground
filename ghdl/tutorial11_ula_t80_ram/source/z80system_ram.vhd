@@ -17,7 +17,7 @@ entity z80system_ram is
 end entity;
 
 architecture basic of z80system_ram is
-type mem8_ram_t  is array (natural range 49151 downto 0) of std_logic_vector(07 downto 0);
+type mem8_ram_t  is array (natural range 16383 downto 0) of std_logic_vector(07 downto 0);
 signal ram_data : mem8_ram_t := (others => (others => '0'));
 signal data_tmp: std_logic_vector(7 downto 0);
 type std_logic_vector_file is file of mem8_ram_t;
@@ -29,13 +29,16 @@ begin
 		if (falling_edge(clk_i)) then
 			if (mreqn_i = '0') then
 				addr := addr_i;
-				if (unsigned(addr) > 16383) and (unsigned(addr) < 65536) then
+				if (unsigned(addr) > 32768) then
+					report "trying to latch addr above ram " & to_hstring(addr);
+				end if;
+				if (unsigned(addr) > 16383) and (unsigned(addr) < 32768) then
 					--report "latch addr to tmp " & to_hstring(addr);
 					end if;
 				end if;
 				if (rd_i = '0')  then
 					--report "read from addr " & to_hstring(addr);
-					if (unsigned(addr) > 16383) and (unsigned(addr) < 65536) then
+					if (unsigned(addr) > 16383) and (unsigned(addr) < 32768) then
 						report "reading from ram[" & to_hstring(addr) & "]=" &
 						to_hstring(ram_data(to_integer(unsigned(addr))-16384));
 						data_o <= ram_data(to_integer(unsigned(addr))-16384);
@@ -47,7 +50,7 @@ begin
 					data_o <= "ZZZZZZZZ";
 				end if;
 				if wr_i = '0' then
-					if (unsigned(addr) > 16383) and (unsigned(addr) < 65536) then
+					if (unsigned(addr) > 16383) and (unsigned(addr) < 32768) then
 						ram_data(to_integer(unsigned(addr))-16384) <= data_i;
 						report "writing to ram[" & to_hstring(addr) & "]=" & to_hstring(data_i) ;
 					end if;
