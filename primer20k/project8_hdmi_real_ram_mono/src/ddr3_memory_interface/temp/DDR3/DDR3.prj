@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE gowin-synthesis-project>
+<Project>
+    <Version>beta</Version>
+    <Device id="GW2A-18C" package="PBGA256" speed="8" partNumber="GW2A-LV18PG256C8/I7"/>
+    <FileList>
+        <File path="/home/cod3r/Data/Gowin/IDE/ipcore/DDR3/data/ddr3_1_2/ddr3_1_2code.v" type="verilog"/>
+        <File path="/home/cod3r/Data/Gowin/IDE/ipcore/DDR3/data/ddr3_1_2/DDR3_TOP.v" type="verilog"/>
+    </FileList>
+    <OptionList>
+        <Option type="disable_insert_pad" value="1"/>
+        <Option type="dsp_balance" value="1"/>
+        <Option type="include_path" value="/home/cod3r/Data/Gowin/IDE/ipcore/DDR3/data/ddr3_1_2"/>
+        <Option type="include_path" value="/home/cod3r/Data/vhdl_playground/primer20k/project8_hdmi_real_ram_mono/src/ddr3_memory_interface/temp/DDR3"/>
+        <Option type="output_file" value="ddr3_memory_interface.vg"/>
+        <Option type="output_template" value="ddr3_memory_interface_tmp.vhd"/>
+        <Option type="output_vhdl_file" value="ddr3_memory_interface.vhg"/>
+        <Option type="ram_balance" value="1"/>
+        <Option type="ram_rw_check" value="1"/>
+        <Option type="verilog_language" value="sysv-2017"/>
+    </OptionList>
+</Project>
