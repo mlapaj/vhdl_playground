@@ -1,18 +1,19 @@
-//Copyright (C)2014-2022 Gowin Semiconductor Corporation.
+//Copyright (C)2014-2023 Gowin Semiconductor Corporation.
 //All rights reserved. 
 //File Title: Physical Constraints file
-//GOWIN Version: 1.9.8.09 Education
+//GOWIN Version: 1.9.8.11 Education
 //Part Number: GW2A-LV18PG256C8/I7
-//Device: GW2A-18C
-//Created Time: Sat 04 15 00:04:20 2023
+//Device: GW2A-18
+//Device Version: C
+//Created Time: Mon 11 27 13:11:40 2023
 
-IO_LOC "uart0_txd_o" M11;
-IO_PORT "uart0_txd_o" PULL_MODE=UP DRIVE=8;
-IO_PORT "gpio_o[1]" PULL_MODE=UP DRIVE=8;
-IO_PORT "gpio_o[0]" PULL_MODE=UP DRIVE=8;
-IO_LOC "uart0_rxd_i" T13;
-IO_PORT "uart0_rxd_i" PULL_MODE=UP;
-IO_LOC "rstn_i" T5;
-IO_PORT "rstn_i" PULL_MODE=UP;
-IO_LOC "clk_i" H11;
-IO_PORT "clk_i" PULL_MODE=UP;
+IO_LOC "GPIO" L16;
+IO_PORT "GPIO" IO_TYPE=LVCMOS18 PULL_MODE=UP DRIVE=8 BANK_VCCIO=1.8;
+IO_LOC "UART_TXD" R8;
+IO_PORT "UART_TXD" IO_TYPE=LVTTL33 PULL_MODE=UP DRIVE=8 BANK_VCCIO=3.3;
+IO_LOC "RSTN" T3;
+IO_PORT "RSTN" PULL_MODE=UP BANK_VCCIO=1.8;
+IO_LOC "UART_RXD" T7;
+IO_PORT "UART_RXD" IO_TYPE=LVTTL33 PULL_MODE=UP BANK_VCCIO=3.3;
+IO_LOC "CLK" H11;
+IO_PORT "CLK" PULL_MODE=UP BANK_VCCIO=1.8;

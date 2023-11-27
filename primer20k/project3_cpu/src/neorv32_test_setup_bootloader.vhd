@@ -72,9 +72,25 @@ begin
     CLOCK_FREQUENCY              => CLOCK_FREQUENCY,   -- clock frequency of clk_i in Hz
     INT_BOOTLOADER_EN            => true,              -- boot configuration: true = boot explicit bootloader; false = boot from int/ext (I)MEM
     -- RISC-V CPU Extensions --
-    CPU_EXTENSION_RISCV_C        => true,              -- implement compressed extension?
-    CPU_EXTENSION_RISCV_M        => true,              -- implement mul/div extension?
-    CPU_EXTENSION_RISCV_Zicntr   => true,              -- implement base counters?
+    -- THESE 3 ARE NEEDED FOR BOOTLOADER
+    --CPU_EXTENSION_RISCV_C        => false,              -- implement compressed extension?
+    --CPU_EXTENSION_RISCV_M        => true,              -- implement mul/div extension?
+    --CPU_EXTENSION_RISCV_Zicntr   => true,              -- implement base counters?
+    -- REST TO TEST:
+    CPU_EXTENSION_RISCV_A        => true,          -- implement atomic memory operations extension?
+    CPU_EXTENSION_RISCV_B        => true,          -- implement bit-manipulation extension?
+    CPU_EXTENSION_RISCV_C        => false,         -- implement compressed extension?
+    CPU_EXTENSION_RISCV_E        => false,         -- implement embedded RF extension?
+    CPU_EXTENSION_RISCV_M        => true,          -- implement mul/div extension?
+    CPU_EXTENSION_RISCV_U        => true,          -- implement user mode extension?
+    CPU_EXTENSION_RISCV_Zfinx    => true,          -- implement 32-bit floating-point extension (using INT reg!)
+    CPU_EXTENSION_RISCV_Zicntr   => true,          -- implement base counters?
+    CPU_EXTENSION_RISCV_Zihpm    => true,          -- implement hardware performance monitors?
+    CPU_EXTENSION_RISCV_Zmmul    => false,         -- implement multiply-only M sub-extension?
+    CPU_EXTENSION_RISCV_Zxcfu    => true,          -- implement custom (instr.) functions unit?
+
+
+
     -- Internal Instruction memory --
     MEM_INT_IMEM_EN              => true,              -- implement processor-internal instruction memory
     MEM_INT_IMEM_SIZE            => MEM_INT_IMEM_SIZE, -- size of processor-internal instruction memory in bytes

@@ -1,5 +1,5 @@
 -- #################################################################################################
--- # << NEORV32 - CPU Co-Processor: Integer Multiplier/Divider Unit (RISC-V "M" Extension) >>      #
+-- # << NEORV32 CPU - Co-Processor: Integer Multiplier/Divider Unit (RISC-V "M" Extension) >>      #
 -- # ********************************************************************************************* #
 -- # Multiplier core (signed/unsigned) uses serial add-and-shift algorithm. Multiplications can be #
 -- # mapped to DSP blocks (faster!) when FAST_MUL_EN = true. Divider core (unsigned-only; pre and  #
@@ -80,9 +80,6 @@ architecture neorv32_cpu_cp_muldiv_rtl of neorv32_cpu_cp_muldiv is
   type ctrl_t is record
     state         : state_t;
     cnt           : std_ulogic_vector(index_size_f(XLEN)-1 downto 0); -- iteration counter
-    cp_op         : std_ulogic_vector(2 downto 0); -- operation to execute
-    cp_op_ff      : std_ulogic_vector(2 downto 0);
-    op            : std_ulogic; -- 0 = mul, 1 = div
     rs1_is_signed : std_ulogic;
     rs2_is_signed : std_ulogic;
     out_en        : std_ulogic;
@@ -124,7 +121,6 @@ begin
       ctrl.state    <= S_IDLE;
       ctrl.rs2_abs  <= (others => '0');
       ctrl.cnt      <= (others => '0');
-      ctrl.cp_op_ff <= (others => '0');
       ctrl.out_en   <= '0';
       div.sign_mod  <= '0';
     elsif rising_edge(clk_i) then
@@ -135,15 +131,13 @@ begin
       case ctrl.state is
 
         when S_IDLE => -- wait for start signal
-          -- arbitration
-          ctrl.cp_op_ff <= ctrl.cp_op;
-          ctrl.cnt      <= std_ulogic_vector(to_unsigned(XLEN-2, index_size_f(XLEN))); -- iterative cycle counter
+          ctrl.cnt <= std_ulogic_vector(to_unsigned(XLEN-2, index_size_f(XLEN))); -- iterative cycle counter
           if (start_i = '1') then -- trigger new operation
             if (DIVISION_EN = true) then
               -- DIV: check relevant input signs for result sign compensation --
-              if (ctrl.cp_op(1 downto 0) = cp_op_div_c(1 downto 0)) then -- signed div operation
+              if (ctrl_i.ir_funct3(1 downto 0) = cp_op_div_c(1 downto 0)) then -- signed div operation
                 div.sign_mod <= (rs1_i(rs1_i'left) xor rs2_i(rs2_i'left)) and or_reduce_f(rs2_i); -- different signs AND divisor not zero
-              elsif (ctrl.cp_op(1 downto 0) = cp_op_rem_c(1 downto 0)) then -- signed rem operation
+              elsif (ctrl_i.ir_funct3(1 downto 0) = cp_op_rem_c(1 downto 0)) then -- signed rem operation
                 div.sign_mod <= rs1_i(rs1_i'left);
               else
                 div.sign_mod <= '0';
@@ -155,8 +149,8 @@ begin
                 ctrl.rs2_abs <= rs2_i;
               end if;
             end if;
-            -- is fast multiplication?--
-            if (ctrl.op = '0') and (FAST_MUL_EN = true) then
+            -- is fast multiplication? --
+            if (ctrl_i.ir_funct3(2) = '0') and (FAST_MUL_EN = true) then
               ctrl.state <= S_DONE;
             else -- serial division or serial multiplication
               ctrl.state <= S_BUSY;
@@ -175,6 +169,7 @@ begin
 
         when others => -- undefined
           ctrl.state <= S_IDLE;
+
       end case;
     end if;
   end process coprocessor_ctrl;
@@ -182,19 +177,15 @@ begin
   -- done? assert one cycle before actual data output --
   valid_o <= '1' when (ctrl.state = S_DONE) else '0';
 
-  -- co-processor operation --
-  ctrl.cp_op <= ctrl_i.ir_funct3;
-  ctrl.op    <= '1' when (ctrl_i.ir_funct3(2) = '1') else '0';
-
   -- input operands treated as signed? --
-  ctrl.rs1_is_signed <= '1' when (ctrl.cp_op = cp_op_mulh_c) or (ctrl.cp_op = cp_op_mulhsu_c) or
-                                 (ctrl.cp_op = cp_op_div_c) or (ctrl.cp_op = cp_op_rem_c) else '0';
-  ctrl.rs2_is_signed <= '1' when (ctrl.cp_op = cp_op_mulh_c) or
-                                 (ctrl.cp_op = cp_op_div_c) or (ctrl.cp_op = cp_op_rem_c) else '0';
+  ctrl.rs1_is_signed <= '1' when (ctrl_i.ir_funct3 = cp_op_mulh_c) or (ctrl_i.ir_funct3 = cp_op_mulhsu_c) or
+                                 (ctrl_i.ir_funct3 = cp_op_div_c)  or (ctrl_i.ir_funct3 = cp_op_rem_c) else '0';
+  ctrl.rs2_is_signed <= '1' when (ctrl_i.ir_funct3 = cp_op_mulh_c) or
+                                 (ctrl_i.ir_funct3 = cp_op_div_c)  or (ctrl_i.ir_funct3 = cp_op_rem_c) else '0';
 
   -- start operation (do it fast!) --
-  mul.start <= '1' when (start_i = '1') and (ctrl.op = '0') else '0';
-  div.start <= '1' when (start_i = '1') and (ctrl.op = '1') else '0';
+  mul.start <= '1' when (start_i = '1') and (ctrl_i.ir_funct3(2) = '0') else '0';
+  div.start <= '1' when (start_i = '1') and (ctrl_i.ir_funct3(2) = '1') else '0';
 
 
   -- Multiplier Core (signed/unsigned) - Full Parallel --------------------------------------
@@ -203,9 +194,13 @@ begin
   if (FAST_MUL_EN = true) generate
 
     -- direct approach --
-    multiplier_core: process(clk_i)
+    multiplier_core: process(rstn_i, clk_i)
     begin
-      if rising_edge(clk_i) then
+      if (rstn_i = '0') then
+        mul.dsp_x <= (others => '0');
+        mul.dsp_y <= (others => '0');
+        mul.prod  <= (others => '0');
+      elsif rising_edge(clk_i) then
         if (mul.start = '1') then
           mul.dsp_x <= signed((rs1_i(rs1_i'left) and ctrl.rs1_is_signed) & rs1_i);
           mul.dsp_y <= signed((rs2_i(rs2_i'left) and ctrl.rs2_is_signed) & rs2_i);
@@ -234,9 +229,11 @@ begin
   if (FAST_MUL_EN = false) generate
 
     -- shift-and-add algorithm --
-    multiplier_core: process(clk_i)
+    multiplier_core: process(rstn_i, clk_i)
     begin
-      if rising_edge(clk_i) then
+      if (rstn_i = '0') then
+        mul.prod <= (others => '0');
+      elsif rising_edge(clk_i) then
         if (mul.start = '1') then -- start new multiplication
           mul.prod(63 downto 32) <= (others => '0');
           mul.prod(31 downto 00) <= rs1_i;
@@ -280,9 +277,12 @@ begin
   if (DIVISION_EN = true) generate
 
     -- restoring division algorithm --
-    divider_core: process(clk_i)
+    divider_core: process(rstn_i, clk_i)
     begin
-      if rising_edge(clk_i) then
+      if (rstn_i = '0') then
+        div.quotient  <= (others => '0');
+        div.remainder <= (others => '0');
+      elsif rising_edge(clk_i) then
         if (div.start = '1') then -- start new division
           if ((rs1_i(rs1_i'left) and ctrl.rs1_is_signed) = '1') then -- signed division?
             div.quotient <= std_ulogic_vector(0 - unsigned(rs1_i)); -- make positive
@@ -305,7 +305,7 @@ begin
     div.sub <= std_ulogic_vector(unsigned('0' & div.remainder(30 downto 0) & div.quotient(31)) - unsigned('0' & ctrl.rs2_abs));
 
     -- result and sign compensation --
-    div.res_u <= div.quotient when (ctrl.cp_op = cp_op_div_c) or (ctrl.cp_op = cp_op_divu_c) else div.remainder;
+    div.res_u <= div.quotient when (ctrl_i.ir_funct3 = cp_op_div_c) or (ctrl_i.ir_funct3 = cp_op_divu_c) else div.remainder;
     div.res   <= std_ulogic_vector(0 - unsigned(div.res_u)) when (div.sign_mod = '1') else div.res_u;
 
   end generate; -- /divider_core_serial
@@ -323,11 +323,11 @@ begin
 
   -- Data Output ----------------------------------------------------------------------------
   -- -------------------------------------------------------------------------------------------
-  operation_result: process(ctrl, mul, div)
+  operation_result: process(ctrl, ctrl_i.ir_funct3, mul.prod, div.res)
   begin
     res_o <= (others => '0'); -- default
     if (ctrl.out_en = '1') then
-      case ctrl.cp_op_ff is
+      case ctrl_i.ir_funct3 is
         when cp_op_mul_c =>
           res_o <= mul.prod(31 downto 00);
         when cp_op_mulh_c | cp_op_mulhsu_c | cp_op_mulhu_c =>

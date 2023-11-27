@@ -1,5 +1,5 @@
 -- #################################################################################################
--- # << NEORV32 - CPU Co-Processor: Bit-Manipulation Co-Processor Unit (RISC-V "B" Extension) >>   #
+-- # << NEORV32 CPU - Co-Processor: Bit-Manipulation Co-Processor Unit (RISC-V "B" Extension) >>   #
 -- # ********************************************************************************************* #
 -- # Supported B sub-extensions (Zb*):                                                             #
 -- # - Zba: Address-generation instructions                                                        #
@@ -171,13 +171,13 @@ begin
   -- Sub-Extension Configuration ------------------------------------------------------------
   -- -------------------------------------------------------------------------------------------
   assert false report
-  "NEORV32 CPU: Implementing bit-manipulation (B) sub-extensions " &
-  cond_sel_string_f(zba_en_c, "Zba ", "") &
-  cond_sel_string_f(zbb_en_c, "Zbb ", "") &
-  cond_sel_string_f(zbc_en_c, "Zbc ", "") &
-  cond_sel_string_f(zbs_en_c, "Zbs ", "") &
-  ""
-  severity note;
+    "NEORV32 CPU: Implementing bit-manipulation (B) sub-extensions " &
+    cond_sel_string_f(zba_en_c, "Zba ", "") &
+    cond_sel_string_f(zbb_en_c, "Zbb ", "") &
+    cond_sel_string_f(zbc_en_c, "Zbc ", "") &
+    cond_sel_string_f(zbs_en_c, "Zbs ", "") &
+    ""
+    severity note;
 
 
   -- Instruction Decoding (One-Hot) ---------------------------------------------------------
@@ -305,9 +305,14 @@ begin
   serial_shifter:
   if (FAST_SHIFT_EN = false) generate
 
-    shifter_unit: process(clk_i)
+    shifter_unit: process(rstn_i, clk_i)
     begin
-      if rising_edge(clk_i) then
+      if (rstn_i = '0') then
+        shifter.cnt     <= (others => '0');
+        shifter.sreg    <= (others => '0');
+        shifter.cnt_max <= (others => '0');
+        shifter.bcnt    <= (others => '0');
+      elsif rising_edge(clk_i) then
         if (shifter.start = '1') then -- trigger new shift
           shifter.cnt <= (others => '0');
           -- shift operand --
@@ -420,9 +425,12 @@ begin
 
   -- Carry-Less Multiplication Core ---------------------------------------------------------
   -- -------------------------------------------------------------------------------------------
-  clmul_core: process(clk_i)
+  clmul_core: process(rstn_i, clk_i)
   begin
-    if rising_edge(clk_i) then
+    if (rstn_i = '0') then
+      clmul.cnt  <= (others => '0');
+      clmul.prod <= (others => '0');
+    elsif rising_edge(clk_i) then
       if (clmul.start = '1') then -- start new multiplication
         clmul.cnt                 <= (others => '0');
         clmul.cnt(clmul.cnt'left) <= '1';
@@ -544,9 +552,11 @@ begin
 
   -- Output Gate ----------------------------------------------------------------------------
   -- -------------------------------------------------------------------------------------------
-  output_gate: process(clk_i)
+  output_gate: process(rstn_i, clk_i)
   begin
-    if rising_edge(clk_i) then
+    if (rstn_i = '0') then
+      res_o <= (others => '0');
+    elsif rising_edge(clk_i) then
       res_o <= (others => '0'); -- default
       if (valid = '1') then
         res_o <= res_out(op_andn_c)   or res_out(op_orn_c)    or res_out(op_xnor_c)  or

@@ -44,28 +44,19 @@ use neorv32.neorv32_package.all;
 
 entity neorv32_icache is
   generic (
-    ICACHE_NUM_BLOCKS : natural; -- number of blocks (min 1), has to be a power of 2
-    ICACHE_BLOCK_SIZE : natural; -- block size in bytes (min 4), has to be a power of 2
-    ICACHE_NUM_SETS   : natural  -- associativity / number of sets (1=direct_mapped), has to be a power of 2
+    ICACHE_NUM_BLOCKS : natural range 1 to 256; -- number of blocks (min 1), has to be a power of 2
+    ICACHE_BLOCK_SIZE : natural range 1 to 2**16; -- block size in bytes (min 4), has to be a power of 2
+    ICACHE_NUM_SETS   : natural range 1 to 2; -- associativity / number of sets; 1=direct-mapped, 2=2-way set-associative
+    ICACHE_UC_PBEGIN  : std_ulogic_vector(3 downto 0) -- begin of uncached address space (page number)
   );
   port (
-    -- global control --
-    clk_i        : in  std_ulogic; -- global clock, rising edge
-    rstn_i       : in  std_ulogic; -- global reset, low-active, async
-    clear_i      : in  std_ulogic; -- cache clear
-    -- host controller interface --
-    host_addr_i  : in  std_ulogic_vector(31 downto 0); -- bus access address
-    host_rdata_o : out std_ulogic_vector(31 downto 0); -- bus read data
-    host_re_i    : in  std_ulogic; -- read enable
-    host_ack_o   : out std_ulogic; -- bus transfer acknowledge
-    host_err_o   : out std_ulogic; -- bus transfer error
-    -- peripheral bus interface --
-    bus_cached_o : out std_ulogic; -- set if cached (!) access in progress
-    bus_addr_o   : out std_ulogic_vector(31 downto 0); -- bus access address
-    bus_rdata_i  : in  std_ulogic_vector(31 downto 0); -- bus read data
-    bus_re_o     : out std_ulogic; -- read enable
-    bus_ack_i    : in  std_ulogic; -- bus transfer acknowledge
-    bus_err_i    : in  std_ulogic  -- bus transfer error
+    clk_i     : in  std_ulogic; -- global clock, rising edge
+    rstn_i    : in  std_ulogic; -- global reset, low-active, async
+    clear_i   : in  std_ulogic; -- cache clear
+    cpu_req_i : in  bus_req_t;  -- request bus
+    cpu_rsp_o : out bus_rsp_t;  -- response bus
+    bus_req_o : out bus_req_t;  -- request bus
+    bus_rsp_i : in  bus_rsp_t   -- response bus
   );
 end neorv32_icache;
 
@@ -83,6 +74,7 @@ architecture neorv32_icache_rtl of neorv32_icache is
   );
   port (
     -- global control --
+    rstn_i       : in  std_ulogic; -- global reset, async, low-active
     clk_i        : in  std_ulogic; -- global clock, rising edge
     clear_i      : in  std_ulogic; -- invalidate whole cache
     hit_o        : out std_ulogic; -- hit access
@@ -103,6 +95,7 @@ architecture neorv32_icache_rtl of neorv32_icache is
   -- cache interface --
   type cache_if_t is record
     clear      : std_ulogic; -- cache clear
+    host_re    : std_ulogic; -- read access
     host_addr  : std_ulogic_vector(31 downto 0); -- cpu access address
     host_rdata : std_ulogic_vector(31 downto 0); -- cpu read data
     host_rstat : std_ulogic; -- cpu read status
@@ -116,14 +109,14 @@ architecture neorv32_icache_rtl of neorv32_icache is
   signal cache : cache_if_t;
 
   -- control engine --
-  type ctrl_engine_state_t is (S_IDLE, S_CLEAR, S_CHECK, S_DOWNLOAD_REQ, S_DOWNLOAD_GET, S_RESYNC);
+  type ctrl_engine_state_t is (S_IDLE, S_CLEAR, S_CHECK, S_DOWNLOAD_REQ, S_DOWNLOAD_GET, S_DIRECT_REQ, S_DIRECT_GET, S_RESYNC);
   type ctrl_t is record
     state         : ctrl_engine_state_t; -- current state
     state_nxt     : ctrl_engine_state_t; -- next state
     addr_reg      : std_ulogic_vector(31 downto 0); -- address register for block download
     addr_reg_nxt  : std_ulogic_vector(31 downto 0);
-    re_buf        : std_ulogic; -- read request buffer
-    re_buf_nxt    : std_ulogic;
+    req_buf       : std_ulogic; -- request buffer
+    req_buf_nxt   : std_ulogic;
     clear_buf     : std_ulogic; -- clear request buffer
     clear_buf_nxt : std_ulogic;
   end record;
@@ -133,19 +126,12 @@ begin
 
   -- Sanity Checks --------------------------------------------------------------------------
   -- -------------------------------------------------------------------------------------------
-  -- configuration --
   assert not (is_power_of_two_f(ICACHE_NUM_BLOCKS) = false) report
     "NEORV32 PROCESSOR CONFIG ERROR! i-cache number of blocks <ICACHE_NUM_BLOCKS> has to be a power of 2." severity error;
   assert not (is_power_of_two_f(ICACHE_BLOCK_SIZE) = false) report
     "NEORV32 PROCESSOR CONFIG ERROR! i-cache block size <ICACHE_BLOCK_SIZE> has to be a power of 2." severity error;
   assert not ((is_power_of_two_f(ICACHE_NUM_SETS) = false)) report
     "NEORV32 PROCESSOR CONFIG ERROR! i-cache associativity <ICACHE_NUM_SETS> has to be a power of 2." severity error;
-  assert not (ICACHE_NUM_BLOCKS < 1) report
-    "NEORV32 PROCESSOR CONFIG ERROR! i-cache number of blocks <ICACHE_NUM_BLOCKS> has to be >= 1." severity error;
-  assert not (ICACHE_BLOCK_SIZE < 4) report
-    "NEORV32 PROCESSOR CONFIG ERROR! i-cache block size <ICACHE_BLOCK_SIZE> has to be >= 4." severity error;
-  assert not ((ICACHE_NUM_SETS = 0) or (ICACHE_NUM_SETS > 2)) report
-    "NEORV32 PROCESSOR CONFIG ERROR! i-cache associativity <ICACHE_NUM_SETS> has to be 1 (direct-mapped) or 2 (2-way set-associative)." severity error;
 
 
   -- Control Engine FSM Sync ----------------------------------------------------------------
@@ -154,12 +140,12 @@ begin
   begin
     if (rstn_i = '0') then
       ctrl.state     <= S_CLEAR; -- to reset cache information memory, which does not have an explicit reset
-      ctrl.re_buf    <= '0';
+      ctrl.req_buf   <= '0';
       ctrl.clear_buf <= '0';
       ctrl.addr_reg  <= (others => '0');
     elsif rising_edge(clk_i) then
       ctrl.state     <= ctrl.state_nxt;
-      ctrl.re_buf    <= ctrl.re_buf_nxt;
+      ctrl.req_buf   <= ctrl.req_buf_nxt;
       ctrl.clear_buf <= ctrl.clear_buf_nxt;
       ctrl.addr_reg  <= ctrl.addr_reg_nxt;
     end if;
@@ -168,56 +154,67 @@ begin
 
   -- Control Engine FSM Comb ----------------------------------------------------------------
   -- -------------------------------------------------------------------------------------------
-  ctrl_engine_fsm_comb: process(ctrl, cache, clear_i, host_addr_i, host_re_i, bus_rdata_i, bus_ack_i, bus_err_i)
+  ctrl_engine_fsm_comb: process(ctrl, cache, clear_i, cpu_req_i, bus_rsp_i)
   begin
     -- control defaults --
     ctrl.state_nxt     <= ctrl.state;
     ctrl.addr_reg_nxt  <= ctrl.addr_reg;
-    ctrl.re_buf_nxt    <= ctrl.re_buf or host_re_i;
+    ctrl.req_buf_nxt   <= ctrl.req_buf or cpu_req_i.stb;
     ctrl.clear_buf_nxt <= ctrl.clear_buf or clear_i; -- buffer clear request from CPU
 
     -- cache defaults --
     cache.clear        <= '0';
-    cache.host_addr    <= host_addr_i;
+    cache.host_re      <= cpu_req_i.stb and (not cpu_req_i.rw);
+    cache.host_addr    <= cpu_req_i.addr;
     cache.ctrl_en      <= '0';
     cache.ctrl_addr    <= ctrl.addr_reg;
     cache.ctrl_we      <= '0';
-    cache.ctrl_wdata   <= bus_rdata_i;
-    cache.ctrl_wstat   <= bus_err_i;
+    cache.ctrl_wdata   <= bus_rsp_i.data;
+    cache.ctrl_wstat   <= bus_rsp_i.err;
 
     -- host interface defaults --
-    host_ack_o         <= '0';
-    host_err_o         <= '0';
-    host_rdata_o       <= cache.host_rdata;
+    cpu_rsp_o.ack      <= '0';
+    cpu_rsp_o.err      <= '0';
+    cpu_rsp_o.data     <= cache.host_rdata;
 
     -- peripheral bus interface defaults --
-    bus_addr_o         <= ctrl.addr_reg;
-    bus_re_o           <= '0';
+    bus_req_o.data     <= (others => '0');
+    bus_req_o.ben      <= (others => '0');
+    bus_req_o.src      <= cpu_req_i.src;
+    bus_req_o.priv     <= cpu_req_i.priv;
+    bus_req_o.addr     <= ctrl.addr_reg;
+    bus_req_o.rw       <= '0'; -- read-only
+    bus_req_o.stb      <= '0';
+    bus_req_o.rvso     <= cpu_req_i.rvso;
 
     -- fsm --
     case ctrl.state is
 
       when S_IDLE => -- wait for host access request or cache control operation
       -- ------------------------------------------------------------
+        ctrl.addr_reg_nxt <= cpu_req_i.addr;
         if (ctrl.clear_buf = '1') then -- cache control operation?
           ctrl.state_nxt <= S_CLEAR;
-        elsif (host_re_i = '1') or (ctrl.re_buf = '1') then -- cache access
-          ctrl.state_nxt <= S_CHECK;
+        elsif (cpu_req_i.stb = '1') or (ctrl.req_buf = '1') then
+          if (unsigned(cpu_req_i.addr(31 downto 28)) >= unsigned(ICACHE_UC_PBEGIN)) then
+            ctrl.state_nxt <= S_DIRECT_REQ; -- uncached access
+          else
+            ctrl.state_nxt <= S_CHECK; -- cache access
+          end if;
         end if;
 
       when S_CHECK => -- finalize host access if cache hit
       -- ------------------------------------------------------------
         -- calculate block base address - in case we need to download it --
-        ctrl.addr_reg_nxt <= host_addr_i;
         ctrl.addr_reg_nxt((cache_offset_size_c+2)-1 downto 2) <= (others => '0'); -- block-aligned
         ctrl.addr_reg_nxt(1 downto 0) <= "00"; -- word-aligned
         --
-        ctrl.re_buf_nxt <= '0';
+        ctrl.req_buf_nxt <= '0';
         if (cache.hit = '1') then -- cache HIT
           if (cache.host_rstat = '1') then -- data word from cache marked as faulty?
-            host_err_o <= '1';
+            cpu_rsp_o.err <= '1';
           else
-            host_ack_o <= '1';
+            cpu_rsp_o.ack <= '1';
           end if;
           ctrl.state_nxt <= S_IDLE;
         else -- cache MISS
@@ -226,13 +223,13 @@ begin
 
       when S_DOWNLOAD_REQ => -- download new cache block: request new word
       -- ------------------------------------------------------------
-        bus_re_o       <= '1'; -- request new read transfer
+        bus_req_o.stb  <= '1'; -- request new read transfer
         ctrl.state_nxt <= S_DOWNLOAD_GET;
 
       when S_DOWNLOAD_GET => -- download new cache block: wait for bus response
       -- ------------------------------------------------------------
         cache.ctrl_en <= '1'; -- cache update operation
-        if (bus_ack_i = '1') or (bus_err_i = '1') then -- ACK or ERROR = write to cache and get next word (store ERROR flag in cache)
+        if (bus_rsp_i.ack = '1') or (bus_rsp_i.err = '1') then -- ACK or ERROR = write to cache and get next word (store ERROR flag in cache)
           cache.ctrl_we <= '1'; -- write to cache
           if (and_reduce_f(ctrl.addr_reg((cache_offset_size_c+2)-1 downto 2)) = '1') then -- block complete?
             ctrl.state_nxt <= S_RESYNC;
@@ -240,6 +237,23 @@ begin
             ctrl.addr_reg_nxt <= std_ulogic_vector(unsigned(ctrl.addr_reg) + 4);
             ctrl.state_nxt    <= S_DOWNLOAD_REQ;
           end if;
+        end if;
+
+      when S_DIRECT_REQ => -- direct access: request new word
+      -- ------------------------------------------------------------
+        bus_req_o.stb  <= '1'; -- request new read transfer
+        ctrl.state_nxt <= S_DIRECT_GET;
+
+      when S_DIRECT_GET => -- direct access: wait for bus response
+      -- ------------------------------------------------------------
+        ctrl.req_buf_nxt <= '0';
+        cpu_rsp_o.data   <= bus_rsp_i.data;
+        if (bus_rsp_i.err = '1') then
+          cpu_rsp_o.err  <= '1';
+          ctrl.state_nxt <= S_IDLE;
+        elsif (bus_rsp_i.ack = '1') then
+          cpu_rsp_o.ack  <= '1';
+          ctrl.state_nxt <= S_IDLE;
         end if;
 
       when S_RESYNC => -- re-sync host/cache access: cache read-latency
@@ -259,9 +273,6 @@ begin
     end case;
   end process ctrl_engine_fsm_comb;
 
-  -- cached access? --
-  bus_cached_o <= '1' when (ctrl.state = S_DOWNLOAD_REQ) or (ctrl.state = S_DOWNLOAD_GET) else '0';
-
 
   -- Cache Memory ---------------------------------------------------------------------------
   -- -------------------------------------------------------------------------------------------
@@ -273,12 +284,13 @@ begin
   )
   port map (
     -- global control --
+    rstn_i       => rstn_i,
     clk_i        => clk_i,
     clear_i      => cache.clear,
     hit_o        => cache.hit,
     -- host cache access (read-only) --
     host_addr_i  => cache.host_addr,
-    host_re_i    => host_re_i,
+    host_re_i    => cache.host_re,
     host_rdata_o => cache.host_rdata,
     host_rstat_o => cache.host_rstat,
     -- ctrl cache access (write-only) --
@@ -348,6 +360,7 @@ entity neorv32_icache_memory is
   );
   port (
     -- global control --
+    rstn_i       : in  std_ulogic; -- global reset, async, low-active
     clk_i        : in  std_ulogic; -- global clock, rising edge
     clear_i      : in  std_ulogic; -- invalidate whole cache
     hit_o        : out std_ulogic; -- hit access
@@ -431,9 +444,13 @@ begin
 
   -- Cache Access History -------------------------------------------------------------------
   -- -------------------------------------------------------------------------------------------
-  access_history: process(clk_i)
+  access_history: process(rstn_i, clk_i)
   begin
-    if rising_edge(clk_i) then
+    if (rstn_i = '0') then
+      history.re_ff          <= '0';
+      history.last_used_set  <= (others => '0');
+      history.to_be_replaced <= '0';
+    elsif rising_edge(clk_i) then
       history.re_ff <= host_re_i;
       if (clear_i = '1') then -- invalidate cache
         history.last_used_set <= (others => '1');
@@ -450,9 +467,13 @@ begin
 
   -- Status Flag Memory ---------------------------------------------------------------------
   -- -------------------------------------------------------------------------------------------
-  status_memory: process(clk_i)
+  status_memory: process(rstn_i, clk_i)
   begin
-    if rising_edge(clk_i) then
+    if (rstn_i = '0') then
+      valid_flag_s0 <= (others => '0');
+      valid_flag_s1 <= (others => '0');
+      valid         <= (others => '0');
+    elsif rising_edge(clk_i) then
       -- write access --
       if (clear_i = '1') then -- invalidate cache
         valid_flag_s0 <= (others => '0');
@@ -475,7 +496,7 @@ begin
   -- -------------------------------------------------------------------------------------------
   tag_memory: process(clk_i)
   begin
-    if rising_edge(clk_i) then
+    if rising_edge(clk_i) then -- no reset to allow inferring of blockRAM
       if (ctrl_en_i = '1') and (ctrl_we_i = '1') then -- write access
         if (set_select = '0') then
           tag_mem_s0(to_integer(unsigned(cache_index))) <= ctrl_acc_addr.tag;
@@ -507,7 +528,7 @@ begin
   -- -------------------------------------------------------------------------------------------
   cache_mem_access: process(clk_i)
   begin
-    if rising_edge(clk_i) then
+    if rising_edge(clk_i) then -- no reset to allow inferring of blockRAM
       if (ctrl_we_i = '1') then -- write access from control (full-word)
         if (set_select = '0') or (ICACHE_NUM_SETS = 1) then
           cache_data_memory_s0(to_integer(unsigned(cache_addr))) <= ctrl_wstat_i & ctrl_wdata_i;
