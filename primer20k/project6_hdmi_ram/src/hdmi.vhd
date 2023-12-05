@@ -40,7 +40,6 @@ architecture basic of hdmi is
     -- counters
 	signal counter_x : integer range 0 to (PX_WIDTH + PX_FRONT_PORCH + PX_SYNC_PULSE + PX_BACK_PORCH + 1);
 	signal counter_y : integer range 0 to (LINE_HEIGHT + LINE_FRONT_PORCH + LINE_SYNC_PULSE + LINE_BACK_PORCH + 1);
-
     signal rgb_vs_i: std_logic;
     signal rgb_hs_i: std_logic;
     signal rgb_de_i: std_logic;
@@ -64,7 +63,6 @@ architecture basic of hdmi is
             O_tmds_data_n: out std_logic_vector(2 downto 0)
         );
     end component;
-
 
     -- screen details
     constant zx_screen_res_x   : integer := 256;
@@ -96,7 +94,6 @@ hdmi0: DVI_TX_Top
 	);
 
 
- 
 -- takes care of synchronisation signals
 process (clk_i)
 	variable scale_counter_x : integer range 0 to zx_screen_scale;
@@ -117,7 +114,6 @@ begin
 				rdy_internal <= '0';
 		else
 			if (rdy_i = '1') then
-				report "rdy internal 1";
 				rdy_internal <= '1';
 				if counter_x = (PX_WIDTH + PX_FRONT_PORCH + PX_SYNC_PULSE + PX_BACK_PORCH - 1) then
 					counter_x <= 0;
@@ -179,9 +175,18 @@ begin
 										tmp_counter_y(3) &
 										tmp_counter_x(7 downto 3);
 					report "This is x " & to_hstring(tmp_counter_x) & " and y " & to_hstring(tmp_counter_y) &
-					" addr: " & to_hstring(addr_scr) & " bit " & to_hstring(tmp_counter_x(2 downto 0));
-					rd_o <= '0';
-					addr_o <= std_logic_vector(unsigned(addr_scr) + 16384);
+					" addr: " & to_hstring(addr_scr) & " bit " & to_hstring(tmp_counter_x(2 downto 0)) & "scale cnt" & 
+                    integer'image(scale_counter_x);
+                    -- need to add optimalisation like not reading addres which is already fetched
+                    -- NOTE: same can be done for lines, we could create buffer with all needed data fetched in first line
+                    -- fetch data at first bit
+                    if (scale_counter_x = 0) and (tmp_counter_x(2 downto 0) = "000") then
+                        rd_o <= '0';
+					    addr_o <= std_logic_vector(unsigned(addr_scr) + 16384);
+                    else
+                        -- we do not need to read anything
+                        rd_o <= '1';
+                    end if;
 				else
 					rd_o <= '1';
 				end if;
@@ -214,11 +219,16 @@ begin
 					rgb_de_i <= '1';
 					-- we will not fill whole screen, we are taking
 					-- some part of it
-					if (zx_screen_counter_x >= zx_screen_offset) and (zx_screen_counter_x < (zx_screen_res_x + zx_screen_offset)) and
-					   (zx_screen_counter_y < zx_screen_res_y)
-					   then
-						tmp_char := data_i;
-						-- next line: think how to improve it
+                    if (zx_screen_counter_x >= zx_screen_offset) and (zx_screen_counter_x < (zx_screen_res_x + zx_screen_offset)) and
+                       (zx_screen_counter_y < zx_screen_res_y)
+                    then
+                           -- due to optimalisation
+                           -- not every time we need to read data
+                           -- scaling 3 gives 3 same reads
+                        if (rd_o = '0') then
+                            tmp_char := data_i;
+                        end if;
+                        -- next line: think how to improve it
 						tmp_counter_x := std_logic_vector(to_unsigned(zx_screen_counter_x-zx_screen_offset,8));
 						tmp_bit := tmp_char(7-to_integer(unsigned(tmp_counter_x(2 downto 0))));
 						report "PutPixel [x=" & integer'image(zx_screen_counter_x-zx_screen_offset) & ",y=" & integer'image(zx_screen_counter_y) & "]=" & std_logic'image(tmp_bit) &
