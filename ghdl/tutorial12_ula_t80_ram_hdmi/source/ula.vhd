@@ -30,11 +30,8 @@ entity ula is
     cpu_data_o:  out std_logic_vector(7 downto 0);
 
     -- cpu to video
-    vid_mreqn_i: in std_logic;
     vid_rd_i:    in std_logic;
-    vid_wr_i:    in std_logic;
     vid_addr_i:  in std_logic_vector(15 downto 0);
-    vid_data_i:  in std_logic_vector(7 downto 0);
     vid_data_o:  out std_logic_vector(7 downto 0)
 
   );
@@ -44,12 +41,14 @@ architecture basic of ula is
 		signal video_process : std_logic := '0';
 begin
 
-	video_process <= '1'         when vid_mreqn_i = '0' else '0';
-	mem_mreqn_o   <= vid_mreqn_i when video_process='1' else cpu_mreqn_i;
+	video_process <= '1'         when vid_rd_i = '0' else '0';
+    -- video has no mreqn, use vid_rd_i instead
+	mem_mreqn_o   <= vid_rd_i when video_process='1' else cpu_mreqn_i;
 	mem_rd_o      <= vid_rd_i    when video_process='1' else cpu_rd_i;
-	mem_wr_o      <= vid_wr_i    when video_process='1' else cpu_wr_i;
+    -- write not used for video set to active high
+    mem_wr_o      <= '1'    when video_process='1' else cpu_wr_i;
 	mem_addr_o    <= vid_addr_i  when video_process='1' else cpu_addr_i;
-	mem_data_o    <= vid_data_i  when video_process='1' else cpu_data_i;
+    mem_data_o    <=  cpu_data_i; -- vide is just for reading, write is not used
 	vid_data_o    <= mem_data_i  when video_process='1' else "00000000";
 	cpu_data_o    <= mem_data_i  when video_process='0' else "00000000";
 	process (clk_i)

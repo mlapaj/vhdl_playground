@@ -1,5 +1,5 @@
 # vhdl files
-T80_FILES = source/T80/T80_Pack.vhd source/T80/GBse.vhd source/T80/T80.vhd source/T80/T8080se.vhd source/T80/T80_ALU.vhd source/T80/T80_MCode.vhd source/T80/T80_Reg.vhd source/T80/T80a.vhd source/T80/T80as.vhd source/T80/T80pa.vhd source/T80/T80s.vhd source/T80/T80se.vhd source/T80/T80sed.vhd
+T80_FILES = source/hdmi.vhd source/T80/T80_Pack.vhd source/T80/GBse.vhd source/T80/T80.vhd source/T80/T8080se.vhd source/T80/T80_ALU.vhd source/T80/T80_MCode.vhd source/T80/T80_Reg.vhd source/T80/T80a.vhd source/T80/T80as.vhd source/T80/T80pa.vhd source/T80/T80s.vhd source/T80/T80se.vhd source/T80/T80sed.vhd
 FILES = source/ula.vhd source/z80system_rom_image.vhd source/z80system.vhd source/z80system_rom.vhd source/z80system_ram.vhd testbench/z80system_tb.vhd
 #GHDL CONFIG
 GHDL_CMD = ghdl-gcc
@@ -26,12 +26,12 @@ run:
 	echo "RUN"
 	date
 	$(GHDL_CMD) -r $(GHDL_FLAGS) --workdir=simulation -P=simulation --work=work z80system_tb\
-	   	--stop-time=1000ms --ieee-asserts=disable  --assert-level=error --max-stack-alloc=0
-#	--wave=$(SIMDIR)/out.ghw
+	   	--stop-time=100us --ieee-asserts=disable  --assert-level=error --max-stack-alloc=0 --wave=$(SIMDIR)/out.ghw
+# 1000ms
 	date
 view:
 	echo "VIEW"
-#	$(WAVEFORM_VIEWER) wave.gtkw
+	$(WAVEFORM_VIEWER) wave.gtkw
 #	$(WAVEFORM_VIEWER) $(SIMDIR)/out.ghw
 
 clean:
