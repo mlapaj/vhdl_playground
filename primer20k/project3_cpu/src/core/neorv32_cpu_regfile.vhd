@@ -130,8 +130,10 @@ begin
     if rising_edge(clk_i) then
       if (rf_we = '1') then
         reg_file(to_integer(unsigned(opa_addr(addr_bits_c-1 downto 0)))) <= rf_wdata;
+        rs1_o <= rf_wdata;
+      else
+        rs1_o <= reg_file(to_integer(unsigned(opa_addr(addr_bits_c-1 downto 0))));
       end if;
-      rs1_o <= reg_file(to_integer(unsigned(opa_addr(addr_bits_c-1 downto 0))));
       rs2_o <= reg_file(to_integer(unsigned(opb_addr(addr_bits_c-1 downto 0))));
 
       -- optional 3rd read port --

@@ -52,6 +52,7 @@
         <File path="src/core/neorv32_wishbone.vhd" type="file.vhdl" enable="1" library="neorv32"/>
         <File path="src/core/neorv32_xip.vhd" type="file.vhdl" enable="1" library="neorv32"/>
         <File path="src/core/neorv32_xirq.vhd" type="file.vhdl" enable="1" library="neorv32"/>
+        <File path="src/ddr3_memory_interface/ddr3_memory_interface.vhd" type="file.vhdl" enable="1"/>
         <File path="src/neorv32_test_setup_bootloader.vhd" type="file.vhdl" enable="1"/>
         <File path="src/top_module.vhd" type="file.vhdl" enable="1"/>
         <File path="src/project3_cpu.cst" type="file.cst" enable="1"/>

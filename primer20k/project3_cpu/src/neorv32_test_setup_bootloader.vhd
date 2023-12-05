@@ -54,7 +54,26 @@ entity neorv32_test_setup_bootloader is
     gpio_o      : out std_ulogic_vector(7 downto 0); -- parallel output
     -- UART0 --
     uart0_txd_o : out std_ulogic; -- UART0 send data
-    uart0_rxd_i : in  std_ulogic  -- UART0 receive data
+    uart0_rxd_i : in  std_ulogic;  -- UART0 receive data
+    -- Wishbone bus interface (available if MEM_EXT_EN = true) --
+    wb_tag_o       : out std_ulogic_vector(02 downto 0);
+    wb_adr_o       : out std_ulogic_vector(31 downto 0);
+    wb_dat_i       : in  std_ulogic_vector(31 downto 0) := (others => 'U');
+    wb_dat_o       : out std_ulogic_vector(31 downto 0);
+    wb_we_o        : out std_ulogic;
+    wb_sel_o       : out std_ulogic_vector(03 downto 0);
+    wb_stb_o       : out std_ulogic;
+    wb_cyc_o       : out std_ulogic;
+    wb_ack_i       : in  std_ulogic := 'L';
+    wb_err_i       : in  std_ulogic := 'L';
+    -- JTAG on-chip debugger interface --
+    jtag_trst_i : in  std_ulogic; -- low-active TAP reset (optional)
+    jtag_tck_i  : in  std_ulogic; -- serial clock
+    jtag_tdi_i  : in  std_ulogic; -- serial data input
+    jtag_tdo_o  : out std_ulogic; -- serial data output
+    jtag_tms_i  : in  std_ulogic -- mode select
+
+
   );
 end entity;
 
@@ -71,6 +90,8 @@ begin
     -- General --
     CLOCK_FREQUENCY              => CLOCK_FREQUENCY,   -- clock frequency of clk_i in Hz
     INT_BOOTLOADER_EN            => true,              -- boot configuration: true = boot explicit bootloader; false = boot from int/ext (I)MEM
+    -- On-Chip Debugger (OCD) --
+    ON_CHIP_DEBUGGER_EN          => true,          -- implement on-chip debugger
     -- RISC-V CPU Extensions --
     -- THESE 3 ARE NEEDED FOR BOOTLOADER
     --CPU_EXTENSION_RISCV_C        => false,              -- implement compressed extension?
@@ -90,7 +111,8 @@ begin
     CPU_EXTENSION_RISCV_Zxcfu    => true,          -- implement custom (instr.) functions unit?
 
 
-
+    -- External Memory test
+    MEM_EXT_EN                   => true,
     -- Internal Instruction memory --
     MEM_INT_IMEM_EN              => true,              -- implement processor-internal instruction memory
     MEM_INT_IMEM_SIZE            => MEM_INT_IMEM_SIZE, -- size of processor-internal instruction memory in bytes
@@ -110,8 +132,24 @@ begin
     gpio_o      => con_gpio_o,  -- parallel output
     -- primary UART0 (available if IO_GPIO_NUM > 0) --
     uart0_txd_o => uart0_txd_o, -- UART0 send data
-    uart0_rxd_i => uart0_rxd_i  -- UART0 receive data
-  );
+    uart0_rxd_i => uart0_rxd_i,  -- UART0 receive data
+    wb_tag_o => wb_tag_o,
+    wb_adr_o => wb_adr_o, 
+    wb_dat_i => wb_dat_i,
+    wb_dat_o => wb_dat_o, 
+    wb_we_o  => wb_we_o,
+    wb_sel_o => wb_sel_o, 
+    wb_stb_o => wb_stb_o,
+    wb_cyc_o => wb_cyc_o,
+    wb_ack_i => wb_ack_i,
+    wb_err_i => wb_err_i,
+    jtag_trst_i => jtag_trst_i, -- low-active TAP reset (optional)
+    jtag_tck_i  => jtag_tck_i,  -- serial clock
+    jtag_tdi_i  => jtag_tdi_i,  -- serial data input
+    jtag_tdo_o  => jtag_tdo_o,  -- serial data output
+    jtag_tms_i  => jtag_tms_i  -- mode select
+   
+);
 
   -- GPIO output --
   gpio_o <= con_gpio_o(7 downto 0);
