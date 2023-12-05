@@ -15,6 +15,7 @@
         <File path="src/gowin_rpll/gowin_rpll.vhd" type="file.vhdl" enable="1"/>
         <File path="src/hdmi.vhd" type="file.vhdl" enable="1"/>
         <File path="src/palette.vhd" type="file.vhdl" enable="1"/>
+        <File path="src/ula.vhd" type="file.vhdl" enable="1"/>
         <File path="src/z80system.vhd" type="file.vhdl" enable="1"/>
         <File path="src/z80system_ram.vhd" type="file.vhdl" enable="1"/>
         <File path="src/z80system_rom.vhd" type="file.vhdl" enable="1"/>
