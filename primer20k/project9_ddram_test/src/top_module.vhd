@@ -1,11 +1,15 @@
 library ieee;
 use ieee.std_logic_1164.all;
 use ieee.numeric_std.all;
+use IEEE.STD_LOGIC_UNSIGNED.ALL;
+
 
 use STD.textio.all;
 use ieee.std_logic_textio.all;
 
-entity top is
+use work.fifo_data.all;
+
+entity top_module is
   port (
     clk_i       : in  std_logic;
     rst_n_i      : in  std_logic;
@@ -35,7 +39,7 @@ entity top is
   );
 end entity;
 
-architecture basic of top is
+architecture basic of top_module is
     signal cnt1 : integer range 0 to 27000000;
     signal sout : std_logic;
     -- controller
@@ -149,20 +153,48 @@ end component;
         );
     end component uart;
 
+    component fifo_uart is
+        port (
+                 clock_i:    in  std_logic;
+                 reset_n_i:  in  std_logic;
+                 empty_o:    out std_logic;
+                 data_len_i: in  integer range 0 to 31;
+                 data_in:    in  byte_array_type;
+                 data_valid: in  std_logic;
+                 out_val:    out std_logic_vector(7 downto 0);
+                 out_valid:  out std_logic;
+                 out_ready:  in  std_logic
+             );
+    end component;
 
+    signal tmp_val : std_logic_vector(7 downto 0);
+    signal out_valid : std_logic;
+    signal tmp_out_ready: std_logic;
+    signal fifo_data_valid: std_logic;
+    signal tmp_data : byte_array_type;
+    signal tmp_data_len : integer range 0 to 31 ;
 begin
 
 
 uart0:  uart port map (
             clock               => clk_i,
             reset               => not rst_n_i,
-            data_stream_in      => "01000001",
-            data_stream_in_stb  => '1',
-            --data_stream_in_ack  :   out     std_logic;
-            --data_stream_out     :   out     std_logic_vector(7 downto 0);
-            --data_stream_out_stb :   out     std_logic;
-            tx                  =>   uart_tx_o,
-            rx                  =>   '0'
+            data_stream_in      => tmp_val,
+            data_stream_in_stb  => out_valid,
+            data_stream_in_ack  => tmp_out_ready,
+            tx                  => uart_tx_o,
+            rx                  => '0'
+        );
+
+fifo0:  fifo_uart port map (
+            clock_i    => clk_i,
+            reset_n_i  => rst_n_i,
+            out_val    => tmp_val,
+            out_valid  => out_valid,
+            data_len_i => tmp_data_len,
+            data_in    => tmp_data,
+            data_valid => fifo_data_valid,
+            out_ready  => tmp_out_ready
         );
  
 out_mem_o <= rd_data_o(0);
@@ -285,11 +317,8 @@ begin
                         if (rd_data_o = test_wr_data) then
                             -- test succed, continue
                             report "next test";
-                            test_wr_data <= std_logic_vector( unsigned(test_wr_data) + 1 );
-                            addr_i <= std_logic_vector( unsigned(addr_i) + 8 );
-                            if (unsigned(addr_i) > 100) then
-                                addr_i <= (others => '0');
-                            end if;
+                            test_wr_data <= test_wr_data + "1";
+                            addr_i <= addr_i + "1000"; -- add 8
                             DDRState <= DDR_WriteStart;
                         else
                             report "failure";
@@ -318,13 +347,24 @@ begin
         if (rst_n_i = '0') then
             cnt1 <= 0;
             sout <= '0';
+            fifo_data_valid <= '0';
         else
-            if (mem_test_fail = '0') then
-                cnt1 <= cnt1 + 1;
-                if (cnt1 = 27000000) then
-                    cnt1 <= 0;
+            cnt1 <= cnt1 + 1;
+            if (cnt1 = 27000000) then
+                cnt1 <= 0;
+                if (mem_test_fail = '0') then
                     sout <= not sout;
+                    tmp_data_len <= 31;
+                    tmp_data <= to_array("Testing " & to_hstring(addr_i(27 downto 0 )) & cr & lf);
+                else
+                    tmp_data_len <= 31;
+                    tmp_data <= to_array("Fail " & to_hstring(addr_i(27 downto 0 )) & cr & lf);
+
                 end if;
+
+                fifo_data_valid <= '1';
+            else
+                fifo_data_valid <= '0';
             end if;
         end if;
     end if;

@@ -5,7 +5,7 @@
 //Part Number: GW2A-LV18PG256C8/I7
 //Device: GW2A-18
 //Device Version: C
-//Created Time: Mon 12 04 14:49:44 2023
+//Created Time: Wed 12 06 08:30:30 2023
 
 IO_LOC "O_ddr_ba_o[2]" H5;
 IO_PORT "O_ddr_ba_o[2]" IO_TYPE=SSTL15 PULL_MODE=NONE DRIVE=8 BANK_VCCIO=1.5;
@@ -97,7 +97,7 @@ IO_LOC "IO_ddr_dqs_io[1]" J5,K6;
 IO_PORT "IO_ddr_dqs_io[1]" IO_TYPE=SSTL15D PULL_MODE=NONE DRIVE=8 BANK_VCCIO=1.5;
 IO_LOC "IO_ddr_dqs_io[0]" G2,G3;
 IO_PORT "IO_ddr_dqs_io[0]" IO_TYPE=SSTL15D PULL_MODE=NONE DRIVE=8 BANK_VCCIO=1.5;
-IO_LOC "uart_tx_o" M11;
+IO_LOC "uart_tx_o" T6;
 IO_PORT "uart_tx_o" PULL_MODE=UP DRIVE=8 BANK_VCCIO=1.8;
 IO_LOC "out_o" L16;
 IO_PORT "out_o" PULL_MODE=UP DRIVE=8 BANK_VCCIO=1.8;
