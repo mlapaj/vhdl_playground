@@ -10,7 +10,6 @@ entity fifo_uart is
              clock_i:    in  std_logic;
              reset_n_i:  in  std_logic;
              empty_o:    out std_logic;
-             data_len_i: in  integer range 0 to 31;
              data_in:    in  byte_array_type;
              data_valid: in  std_logic;
              out_val:    out std_logic_vector(7 downto 0);
@@ -19,7 +18,6 @@ entity fifo_uart is
          );
     signal is_buffer_written : std_logic;
     signal tmp_data : byte_array_type;
-    signal tmp_len : integer range 0 to 31;
     signal i : integer range 0 to 31;
 end fifo_uart;
 
@@ -36,7 +34,6 @@ begin
             elsif data_valid = '1' and is_buffer_written = '0' then
                 -- copy data
                 tmp_data <= data_in;
-                tmp_len <= data_len_i;
                 out_valid <= '0';
                 is_buffer_written <= '1';
                 empty_o <= '0';
@@ -45,7 +42,7 @@ begin
                 if is_buffer_written = '1' then
                     if out_ready = '1' or (out_ready = '0' and i = 0) then
                         -- improvement: null terminated string from now
-                        if i = 31 or i = tmp_len or tmp_data(i) = "00000000" then
+                        if i = 31 or tmp_data(i) = "00000000" then
                             is_buffer_written <= '0';
                             out_valid <= '0';
                             out_val <= (others => '0');

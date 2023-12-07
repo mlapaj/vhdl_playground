@@ -1,7 +1,7 @@
 library ieee;
 use ieee.std_logic_1164.all;
 use ieee.numeric_std.all;
-use IEEE.STD_LOGIC_UNSIGNED.ALL;
+use ieee.std_logic_unsigned.all;
 
 
 use STD.textio.all;
@@ -158,7 +158,6 @@ end component;
                  clock_i:    in  std_logic;
                  reset_n_i:  in  std_logic;
                  empty_o:    out std_logic;
-                 data_len_i: in  integer range 0 to 31;
                  data_in:    in  byte_array_type;
                  data_valid: in  std_logic;
                  out_val:    out std_logic_vector(7 downto 0);
@@ -172,7 +171,6 @@ end component;
     signal tmp_out_ready: std_logic;
     signal fifo_data_valid: std_logic;
     signal tmp_data : byte_array_type;
-    signal tmp_data_len : integer range 0 to 31 ;
 begin
 
 
@@ -191,7 +189,6 @@ fifo0:  fifo_uart port map (
             reset_n_i  => rst_n_i,
             out_val    => tmp_val,
             out_valid  => out_valid,
-            data_len_i => tmp_data_len,
             data_in    => tmp_data,
             data_valid => fifo_data_valid,
             out_ready  => tmp_out_ready
@@ -354,10 +351,8 @@ begin
                 cnt1 <= 0;
                 if (mem_test_fail = '0') then
                     sout <= not sout;
-                    tmp_data_len <= 31;
                     tmp_data <= to_array("Testing " & to_hstring(addr_i(27 downto 0 )) & cr & lf);
                 else
-                    tmp_data_len <= 31;
                     tmp_data <= to_array("Fail " & to_hstring(addr_i(27 downto 0 )) & cr & lf);
 
                 end if;
