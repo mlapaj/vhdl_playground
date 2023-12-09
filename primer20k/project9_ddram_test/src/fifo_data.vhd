@@ -3,7 +3,7 @@ use ieee.std_logic_1164.all;
 use ieee.numeric_std.all;
 
 package fifo_data is
-    type byte_array_type is array (integer range 31 downto 0) of std_logic_vector (7 downto 0);
+    type byte_array_type is array (integer range 64 downto 0) of std_logic_vector (7 downto 0);
     function to_array( s : string ) return byte_array_type;
     function my_to_hex_string(s: in std_logic_vector) return string;
 end package;

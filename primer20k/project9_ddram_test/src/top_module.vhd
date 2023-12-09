@@ -41,6 +41,7 @@ end entity;
 
 architecture basic of top_module is
     signal cnt1 : integer range 0 to 27000000;
+    signal prev_sout : std_logic;
     signal sout : std_logic;
     -- controller
     signal memory_clk_i: std_logic;
@@ -68,9 +69,6 @@ architecture basic of top_module is
     -- pll
     signal pll_clkout: std_logic;
     signal pll_lock: std_logic;
-
-    -- aux
-    signal mem_test_fail: std_logic;
 
     -- rstn
 component Gowin_rPLL
@@ -128,12 +126,15 @@ component DDR3_Memory_Interface_Top
 	);
 end component;
 
-    type t_DDRState is (Init, DDR_WriteStart, DDR_WriteWait, DDR_WriteDone, DDR_ReadStart, DDR_ReadWait, DDR_TestFailure);
+    type t_DDRState is (Init, DDR_WriteStart, DDR_WriteWait, DDR_ReadStart,
+                        DDR_ReadWait, DDR_TestFailure, DDR_Verify,
+                        DDR_VerifyWait, DDR_VerifyNext
+                    );
     signal DDRState : t_DDRState;
     signal test_wr_data:  std_logic_vector(127 downto 0);
     signal test_rd_data:  std_logic_vector(127 downto 0);
     signal test_addr: std_logic_vector(27 downto 0);
-    signal test_cnt : integer range 0 to 100;
+    signal test_cnt : integer range 0 to 200;
 
     component uart is
         generic (
@@ -171,6 +172,11 @@ end component;
     signal tmp_out_ready: std_logic;
     signal fifo_data_valid: std_logic;
     signal tmp_data : byte_array_type;
+    signal verif_rd_data:  std_logic_vector(127 downto 0);
+    signal verif_data:  std_logic_vector(127 downto 0);
+    signal temp_mc_reset : std_logic;
+    signal temp_mc_reset_done : std_logic;
+    signal cmd_sent: std_logic;
 begin
 
 
@@ -250,56 +256,51 @@ my_ddr : DDR3_Memory_Interface_Top
 
 
 
-
-
-
--- led handling
-process (clk_x1_o)
-begin
-    if rising_edge(clk_x1_o) then
-        if (rst_n_i = '0') then
-            mem_test_fail <= '0';
-            addr_i <= (others => '0');
-            cmd_i <= (others => '0');
-            cmd_en_i <= '0';
-            wr_data_i <= (others => '0');
-            wr_data_en_i <= '0';
-            wr_data_end_i <= '0';
-            DDRState <= Init;
-            test_wr_data <= (others => '0');
-        else
-            if (init_calib_complete_o='1') then
-            -- our test will be done here
+    -- led handling
+    process (clk_x1_o)
+    begin
+        if rising_edge(clk_x1_o) then
+            if temp_mc_reset = '1'  then
+                DDRState <= Init;
+                temp_mc_reset_done <= '1';
+            elsif (init_calib_complete_o='1') then
+                temp_mc_reset_done <= '0';
+                    -- our test will be done here
                 if (DDRState = Init) then
                     addr_i <= (others => '0');
                     test_wr_data <= (others => '0');
-                    DDRState <= DDR_WriteStart;
+                    test_wr_data(0) <= '1';
                     test_cnt <= 0;
                     cmd_en_i <= '0';
                     wr_data_en_i <= '0';
                     wr_data_end_i <= '0';
-                    test_wr_data <= (others => '0');
+                    cmd_sent <= '0';
+                    DDRState <= DDR_WriteStart;
+                    verif_data <= (others => '0');
+                    verif_rd_data <= (others => '0');
+                    prev_sout <= sout;
                 elsif (DDRState = DDR_WriteStart) then
-                    if cmd_ready_o = '1' and wr_data_rdy_o = '1' then
-                        wr_data_en_i <= '1';
-                        wr_data_end_i <= '1';
-                        wr_data_i <= test_wr_data;
+                    if cmd_ready_o = '1' and cmd_sent = '0' then
                         cmd_i <= "000";
                         cmd_en_i <= '1';
+                        cmd_sent <= '1';
+                    else
+                        cmd_en_i <= '0';
+                    end if;
+                    if wr_data_rdy_o = '1' then
+                        wr_data_i <= test_wr_data;
+                        wr_data_en_i <= '1';
+                        wr_data_end_i <= '1';
                         test_cnt <= 0;
                         DDRState <= DDR_WriteWait;
                     end if;
                 elsif (DDRState = DDR_WriteWait) then
-                    -- check if it can be done differently
                     cmd_en_i <= '0';
+                    cmd_sent <= '0';
                     wr_data_en_i <= '0';
                     wr_data_end_i <= '0';
                     test_cnt <= test_cnt + 1;
-                    -- this is only for wait
-                    if (test_cnt = 50) then
-                        test_cnt <= 0;
-                        DDRState <= DDR_ReadStart;
-                    end if;
+                    DDRState <= DDR_ReadStart;
                 elsif (DDRState = DDR_ReadStart) then
                     if cmd_ready_o = '1' then
                         cmd_i <= "001"; -- to check tomorrow
@@ -310,30 +311,72 @@ begin
                 elsif (DDRState = DDR_ReadWait) then
                     test_cnt <= test_cnt + 1;
                     cmd_en_i <= '0';
+                    cmd_sent <= '0';
                     if (rd_data_valid_o = '1') then
                         if (rd_data_o = test_wr_data) then
+                            verif_rd_data <= rd_data_o;
                             -- test succed, continue
                             report "next test";
-                            test_wr_data <= test_wr_data + "1";
-                            addr_i <= addr_i + "1000"; -- add 8
-                            DDRState <= DDR_WriteStart;
+                            test_wr_data <= test_wr_data rol 1;
+                            addr_i <= addr_i + "10000"; -- add 16
+                            if addr_i > "111011100110101100100110000"  then
+                                -- start from the beginning
+                                addr_i <= (others => '0');
+                                DDRState <= DDR_Verify;
+                            else
+                                DDRState <= DDR_WriteStart;
+                            end if;
                         else
                             report "failure";
-                            mem_test_fail <= '1';
                             DDRState <= DDR_TestFailure;
                         end if;
-                    elsif (test_cnt = 50) then
-                        test_cnt <= 0;
-                        report "assert rd data not valid";
-                        mem_test_fail <= '1'; -- tu sie wywala
-                        DDRState <= DDR_TestFailure;
+                    -- elsif (test_cnt = 200) then
+                    --     test_cnt <= 0;
+                    --     report "assert rd data not valid";
+                    --     DDRState <= DDR_TestFailure;
                     end if;
+                elsif (DDRState = DDR_Verify) then
+                    report "verify";
+                    if cmd_ready_o = '1' then
+                        cmd_i <= "001"; -- to check tomorrow
+                        cmd_en_i <= '1';
+                        test_cnt <= 0;
+                        DDRState <= DDR_VerifyWait;
+                    end if;
+                elsif (DDRState = DDR_VerifyWait) then
+                    report "verify wait";
+                    test_cnt <= test_cnt + 1;
+                    cmd_en_i <= '0';
+                    if (rd_data_valid_o = '1') then
+                        verif_data <= rd_data_o;
+                        DDRState <= DDR_VerifyNext;
+                    -- had to increase count
+                    -- got failures
+                    -- elsif (test_cnt = 200) then
+                    --     test_cnt <= 0;
+                    --     report "assert rd data not valid";
+                    --     DDRState <= DDR_TestFailure; -- tu sie wywala
+                    end if;
+                    -- wait until led blinks (1 second)
+                elsif (DDRState = DDR_VerifyNext) then
+                    --if (prev_sout /= sout) then
+                        addr_i <= addr_i + "10000"; -- add 16
+                        if addr_i > "111011100110101100100110000"  then
+                        -- start from the beginning
+                            addr_i <= (others => '0');
+                            DDRState <= DDR_WriteStart;
+                        else
+                            DDRState <= DDR_Verify;
+                        end if;
+                        prev_sout <= sout;
+                    --end if;
                 elsif (DDRState = DDR_TestFailure) then
+                        -- do nothing
+                    DDRState <= DDR_TestFailure;
                 end if;
             end if;
         end if;
-    end if;
-end process;
+    end process;
 
 
 out_o <= sout;
@@ -345,21 +388,33 @@ begin
             cnt1 <= 0;
             sout <= '0';
             fifo_data_valid <= '0';
+            temp_mc_reset <= '1';
         else
+            if (temp_mc_reset_done = '1') then
+                temp_mc_reset <= '0';
+            end if;
             cnt1 <= cnt1 + 1;
-            if (cnt1 = 27000000) then
+            -- clear indication that new data is ready for uart
+            -- if previous iteration was sending data,
+            -- in next (this) iteration, we need to clear register
+            fifo_data_valid <= '0';
+            if (cnt1 = 2700000) then
                 cnt1 <= 0;
-                if (mem_test_fail = '0') then
+                if (DDRState /= DDR_TestFailure) then
                     sout <= not sout;
-                    tmp_data <= to_array("Testing " & to_hstring(addr_i(27 downto 0 )) & cr & lf);
+                    if (DDRState /= DDR_Verify) and (DDRState /= DDR_VerifyWait) and (DDRState /= DDR_VerifyNext) then
+                        tmp_data <= to_array("T-" & to_hstring(addr_i(27 downto 0 )) & " "
+                                    & to_hstring(test_wr_data) & cr & lf); -- test_wr_data , verif_rd_data
+                        fifo_data_valid <= '1';
+                    else
+                        tmp_data <= to_array("V-" & to_hstring(addr_i(27 downto 0 )) & " "
+                                    & to_hstring(verif_data) & cr & lf);
+                        fifo_data_valid <= '1';
+                    end if;
                 else
-                    tmp_data <= to_array("Fail " & to_hstring(addr_i(27 downto 0 )) & cr & lf);
-
+                    tmp_data <= to_array("F-" & to_hstring(addr_i(27 downto 0 )) & cr & lf);
+                    fifo_data_valid <= '1';
                 end if;
-
-                fifo_data_valid <= '1';
-            else
-                fifo_data_valid <= '0';
             end if;
         end if;
     end if;

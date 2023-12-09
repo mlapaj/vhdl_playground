@@ -18,7 +18,7 @@ entity fifo_uart is
          );
     signal is_buffer_written : std_logic;
     signal tmp_data : byte_array_type;
-    signal i : integer range 0 to 31;
+    signal i : integer range 0 to 63;
 end fifo_uart;
 
 architecture basic of fifo_uart is
@@ -42,7 +42,7 @@ begin
                 if is_buffer_written = '1' then
                     if out_ready = '1' or (out_ready = '0' and i = 0) then
                         -- improvement: null terminated string from now
-                        if i = 31 or tmp_data(i) = "00000000" then
+                        if i = 63 or tmp_data(i) = "00000000" then
                             is_buffer_written <= '0';
                             out_valid <= '0';
                             out_val <= (others => '0');
