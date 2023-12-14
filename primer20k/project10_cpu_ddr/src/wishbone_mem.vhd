@@ -40,8 +40,6 @@ entity wishbone_mem is
              -- debug
              dbg_led : out std_logic
          );
-    signal read_triggered : std_ulogic;
-    signal write_triggered : std_ulogic;
 end entity;
 
 
@@ -92,12 +90,6 @@ architecture basic of wishbone_mem is
 
     end component;
 
-    -- aux DDR Controller signals
-    signal cmd_sent : std_logic;
-    signal temp_mc_reset : std_logic;
-    signal temp_mc_reset_done : std_logic;
-    type t_DDRState is (DDR_Init, DDR_Ready, DDR_Read, DDR_Write, DDR_ReadWait, DDR_WriteDone, DDR_Failure );
-    signal DDRState : t_DDRState;
     -- ddr misc signals
     signal cmd_ready_o: std_logic;
     signal cmd_i: std_logic_vector(2 downto 0);
@@ -110,26 +102,25 @@ architecture basic of wishbone_mem is
     signal rd_data_o: std_logic_vector(127 downto 0);
     signal rd_data_valid_o: std_logic;
     signal rd_data_end_o: std_logic;
-    signal sr_req_i: std_logic;
-    signal ref_req_i: std_logic;
-    signal sr_ack_o: std_logic;
-    signal ref_ack_o: std_logic;
+    -- signal sr_req_i: std_logic;
+    -- signal ref_req_i: std_logic;
+    -- signal sr_ack_o: std_logic;
+    -- signal ref_ack_o: std_logic;
     signal init_calib_complete_o: std_logic;
     signal clk_x1_o: std_logic;
 
 
-    signal read_addr:  std_logic_vector(27 downto 0);
-    signal read_req:   std_logic;
-    signal read_data:  std_ulogic_vector(127 downto 0);
-    signal read_done:  std_logic;
-    signal write_req:  std_logic;
-    signal write_addr: std_logic_vector(27 downto 0);
-    signal write_data: std_logic_vector(127 downto 0);
-    signal write_done: std_logic;
-    signal tmp_ack : std_logic;
+    type t_WBState is (WB_Init, WB_Ready, WB_Read, WB_Read2, WB_Write, WB_Write2 );
+    signal WBState : t_WBState := WB_Init;
+    signal read_req : std_logic;
+    signal read_ack : std_logic;
+    signal read_data: std_logic_vector(127 downto 0);
+    signal write_req : std_logic;
+    signal write_ack : std_logic;
+    signal write_data: std_ulogic_vector(127 downto 0);
+    type t_DDRState is (DDR_Init, DDR_Ready, DDR_ReadWait, DDR_WriteWait);
+    signal DDRState : t_DDRState := DDR_Init;
 
-    type t_WBState is (WB_Init, WB_Ready, WB_Read, WB_Write, WB_ReadWait, WB_WriteWait, WB_Failure );
-    signal WBState : t_WBState;
 begin
     --dbg_led <= '1';
     my_ddr : DDR3_Memory_Interface_Top
@@ -177,76 +168,46 @@ begin
              );
 
 
-    -- handle wishbone bus
+
     process (clk_i)
     begin
         if rising_edge(clk_i) then
-            if (rstn_i = '0') then
+            -- add reset handling later
+            if WBState = WB_Init then
+                wb_err_o <= '0';
                 wb_ack_o <= '0';
-            end if;
-            if (tmp_ack = '1') then
-                wb_ack_o <= '1';
-            else
-                wb_ack_o <= '0';
-            end if;
-        end if;
-    end process;
-
-    process (clk_x1_o)
-    begin
-        if rising_edge(clk_x1_o) then
-            report "clk";
-            if (rstn_i = '0') then
-                report "reset";
                 wb_dat_o <= (others => '0');
-                temp_mc_reset <= '1';
                 WBState <= WB_Ready;
-                read_triggered <= '0';
-                write_triggered <= '0';
                 read_req <= '0';
                 write_req <= '0';
-            elsif (WBState = WB_Ready) then
-                report "WB State Ready";
-                if (wb_ack_o = '1') then
-                    tmp_ack <= '0';
-                end if;
-                if (temp_mc_reset_done = '1') then
-                    temp_mc_reset <= '0';
-                end if;
-                if wb_stb_i = '1' and wb_cyc_i = '1' and wb_we_i = '0' and read_triggered = '0'  then
+            elsif WBState = WB_Ready then
+                if (wb_stb_i = '1') and (wb_cyc_i = '1') and (wb_we_i = '0') then
                     read_req <= '1';
-                    read_addr <= to_stdlogicvector(wb_adr_i (27 downto 0));
-                    read_triggered <= '1';
-                    WBState <= WB_ReadWait;
-                elsif wb_stb_i = '1' and wb_cyc_i = '1' and wb_we_i = '1' and write_triggered = '0'  then
+                    WBState <= WB_Read2;
+                elsif (wb_stb_i = '1') and (wb_cyc_i = '1') and (wb_we_i = '1') then
                     write_req <= '1';
-                    write_addr <= to_stdlogicvector(wb_adr_i (27 downto 0));
-                    write_triggered <= '1';
-                    -- check if is there any better way of doing it
-                    write_data <= "000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000" & to_stdlogicvector(wb_dat_i);
-                    -- TODO: add data and other stuff
-                    WBState <= WB_WriteWait;
-                elsif wb_stb_i = '0' and wb_cyc_i = '0' and read_triggered = '1'  then
-                    wb_dat_o <= (others => '0');
-                    read_addr <= (others => '0');
-                    read_triggered <= '0';
-                elsif wb_stb_i = '0' and wb_cyc_i = '0' and write_triggered = '1'  then
-                    write_triggered <= '0';
-                    write_addr <= (others => '0');
+                    write_data <=  (31 downto 0 => wb_dat_i, others => '0');
+                    --write_data <=  "000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000" & to_stdlogicvector(wb_dat_i);
+                    WBState <= WB_Write2;
                 end if;
-            elsif (WBState = WB_ReadWait) then
-                report "WB State ReadWait";
-                if (read_done = '1') then
-                    tmp_ack <= '1';
-                    wb_dat_o <=  read_data(31 downto 0);
-                    WBState <= WB_Ready;
+                if (wb_stb_i = '0') then
+                    wb_ack_o <= '0';
+                end if;
+            elsif WBState = WB_Read then
+                WBState <= WB_Read2;
+            elsif WBState = WB_Read2 then
+                if (read_ack = '1') then
                     read_req <= '0';
+                    wb_ack_o <= '1';
+                    wb_dat_o <= to_stdulogicvector(read_data(31 downto 0));
+                    WBState <= WB_Ready;
                 end if;
-            elsif (WBState = WB_WriteWait) then
-                report "WB State WriteWait";
-                if (write_done = '1') then
-                    tmp_ack <= '1';
+            elsif WBState = WB_Write then
+                WBState <= WB_Write2;
+            elsif WBState = WB_Write2 then
+                if (write_ack = '1') then
                     write_req <= '0';
+                    wb_ack_o <= '1';
                     WBState <= WB_Ready;
                 end if;
             end if;
@@ -254,102 +215,51 @@ begin
     end process;
 
 
-    -- handle memory controller
-    -- TODO: important add calib complete
+
     process (clk_x1_o)
     begin
         if rising_edge(clk_x1_o) then
-            --report("tick clk_x1_o");
-            if temp_mc_reset = '1'  then
-                report "mem reset";
+            if DDRState = DDR_Init then
+                cmd_en_i <= '0';
+                wr_data_end_i <= '0';
+                wr_data_en_i <= '0';
+                read_ack <= '0';
+                write_ack <= '0';
                 DDRState <= DDR_Ready;
-                temp_mc_reset_done <= '1';
-                read_done <= '0';
-                write_done <= '0';
-                addr_i <= (others => '0');
+            elsif DDRState = DDR_Ready then
+                if read_req = '1' and cmd_ready_o = '1' and read_ack = '0' then
+                    cmd_i <= "001";
+                    addr_i <= to_stdlogicvector(wb_adr_i(27 downto 0));
+                    cmd_en_i <= '1';
+                    DDRState <= DDR_ReadWait;
+                elsif write_req = '1' and cmd_ready_o = '1' and write_ack = '0' and wr_data_rdy_o = '1' then
+                    cmd_i <= "000";
+                    cmd_en_i <= '1';
+                    addr_i <= to_stdlogicvector(wb_adr_i(27 downto 0));
+                    wr_data_i <= to_stdlogicvector(write_data);
+                    wr_data_en_i <= '1';
+                    wr_data_end_i <= '1';
+                    DDRState <= DDR_WriteWait;
+                elsif read_ack = '1' and read_req = '0' then
+                    read_ack <= '0';
+                elsif write_ack = '1' and write_req = '0' then
+                    write_ack <= '0';
+                end if;
+            elsif DDRState = DDR_ReadWait then
+                cmd_en_i <= '0';
+                if (rd_data_valid_o = '1') then
+                    read_ack  <= '1';
+                    read_data <= rd_data_o;
+                    DDRState <= DDR_Ready;
+                end if;
+            elsif DDRState = DDR_WriteWait then
                 cmd_en_i <= '0';
                 wr_data_en_i <= '0';
                 wr_data_end_i <= '0';
-                cmd_sent <= '0';
-            -- our test will be done here
-            -- i assume this will be done without error
-            elsif (init_calib_complete_o = '1') then
-                if (temp_mc_reset = '0') then
-                    temp_mc_reset_done <= '0';
-                end if;
-                if (DDRstate = DDR_Ready) then
-                    -- TODO: lot of not neeeded checks is there
-                    report "mem state init";
-                    if read_done = '0' and write_done = '0' then
-                        if read_req = '1' and write_req = '0' then
-                            ddrstate <= ddr_read;
-                        elsif write_req = '1' and read_req = '0' then
-                            ddrstate <= ddr_write;
-                        end if;
-                    else
-                        if read_done = '1' and read_req = '0' then
-                            read_done <= '0';
-                        elsif write_done = '1' and write_req = '0' then
-                            write_done <= '0';
-                        end if;
-                    end if;
-                elsif (DDRState = DDR_Write) then
-                    report "mem state write";
-                    if cmd_ready_o = '1' and cmd_sent = '0' then
-                        cmd_i <= "000";
-                        cmd_en_i <= '1';
-                    -- main thing
-                        addr_i <= write_addr;
-                        cmd_sent <= '1';
-                    else
-                        cmd_en_i <= '0';
-                    end if;
-                    if wr_data_rdy_o = '1' then
-                        wr_data_i <= write_data;
-                        wr_data_en_i <= '1';
-                        wr_data_end_i <= '1';
-                        -- wait if cmd will be sent
-                        if cmd_sent = '1' then
-                            DDRState <= DDR_WriteDone;
-                        end if;
-                    end if;
-                elsif (DDRState = DDR_WriteDone) then
-                    report "mem state write done";
-                    cmd_en_i <= '0';
-                    cmd_sent <= '0';
-                    wr_data_en_i <= '0';
-                    wr_data_end_i <= '0';
-                    DDRState <= DDR_Ready;
-                    write_done <= '1';
-                elsif (DDRState = DDR_Read) then
-                    report "mem state read";
-                    if cmd_ready_o = '1' then
-                        cmd_i <= "001";
-                        cmd_en_i <= '1';
-                        -- main thing
-                        addr_i <= read_addr;
-                        DDRState <= DDR_ReadWait;
-                    end if;
-                elsif (DDRState = DDR_ReadWait) then
-                    report "mem state read wait";
-                    cmd_en_i <= '0';
-                    --if (rd_data_valid_o = '1') then
-                    -- todo: add stuff here
-                        --read_data <= to_stdulogicvector(rd_data_o);
-                        read_data <= (others => '1');
-                        DDRState <= DDR_Ready;
-                        read_done <= '1';
-                    --end if;
-                elsif (DDRState = DDR_Failure) then
-                    report "mem state failure";
-                -- todo: maybe not needed
-                end if;
+                write_ack  <= '1';
+                DDRState <= DDR_Ready;
             end if;
         end if;
-    end process;
-
-
-
-
+end process;
 end architecture;
 

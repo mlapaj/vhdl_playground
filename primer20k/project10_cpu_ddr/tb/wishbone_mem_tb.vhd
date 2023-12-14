@@ -73,6 +73,7 @@ begin
                 wb_stb <= '0';
                 wb_cyc <= '0';
                 wb_adr <= (others => '0');
+                wb_we <= '0';
                 TestState <= TestRead;
             else
                 if (TestState = TestRead) then

@@ -113,6 +113,8 @@ begin
 
     -- External Memory test
     MEM_EXT_EN                   => true,
+    --MEM_EXT_ASYNC_TX             => true,
+    --MEM_EXT_ASYNC_RX             => true,
     -- Internal Instruction memory --
     MEM_INT_IMEM_EN              => true,              -- implement processor-internal instruction memory
     MEM_INT_IMEM_SIZE            => MEM_INT_IMEM_SIZE, -- size of processor-internal instruction memory in bytes

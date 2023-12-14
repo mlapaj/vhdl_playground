@@ -43,12 +43,15 @@ int main() {
       neorv32_uart_getc(NEORV32_UART0);
       int i = 0;
       void *x  = (void *) 0xC000;
-      /* for (i = 0; i < 20; i=i+2){ */
-      /*     ((unsigned int *) x)[i] = i+j; */
-      /* } */
+      neorv32_uart_printf(NEORV32_UART0,"write:\n");
+      for (i = 0; i < 20; i=i+4){ 
+          ((unsigned int *) x)[i] = i+j; 
+          neorv32_uart_printf(NEORV32_UART0,"%x ", i+j);
+      } 
+      neorv32_uart_printf(NEORV32_UART0,"\n");
 
       neorv32_uart_printf(NEORV32_UART0,"dump:\n");
-      for (i = 0; i < 20; i=i+2){
+      for (i = 0; i < 20; i=i+4){
           neorv32_uart_printf(NEORV32_UART0,"%x ", ((unsigned int *) x)[i]);
       }
       neorv32_uart_printf(NEORV32_UART0,"\n");
