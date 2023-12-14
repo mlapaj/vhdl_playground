@@ -82,8 +82,6 @@ int main() {
       neorv32_uart_puts(NEORV32_UART0,"Pressed a key! :)\n");
       neorv32_gpio_port_set(0x0);
       neorv32_uart_getc(NEORV32_UART0);
-      neorv32_uart_puts(NEORV32_UART0,"Pressed a key! :)\n");
-      neorv32_gpio_port_set(0xF);
   }
   return 0;
 }

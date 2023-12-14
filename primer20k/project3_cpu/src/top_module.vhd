@@ -46,9 +46,11 @@ component neorv32_test_setup_bootloader is
   );
 end component;
 
+
 begin
 
-neorv32: neorv32_test_setup_bootloader port map(
+    neorv32: neorv32_test_setup_bootloader port map
+    (
         clk_i => CLK,
         rstn_i => RSTN,
         uart0_rxd_i => UART_RXD,
@@ -59,7 +61,6 @@ neorv32: neorv32_test_setup_bootloader port map(
         jtag_tdi_i  => jtag_tdi_i,  -- serial data input
         jtag_tdo_o  => jtag_tdo_o,  -- serial data output
         jtag_tms_i  => jtag_tms_i  -- mode select
-        );
-
+    );
 
 end basic;
