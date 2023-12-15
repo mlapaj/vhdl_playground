@@ -13,7 +13,7 @@ architecture basic of wishbone_mem_tb is
     signal gen_rstn: std_logic := '0';
     constant f_pll_clock_c  : natural := 100000000; -- pll clock in Hz
     constant t_pll_clock_c  : time := (1 sec) / f_pll_clock_c;
-    constant f_clock_c      : natural := 20000000; -- main clock in Hz
+    constant f_clock_c      : natural := 27000000; -- main clock in Hz
     constant t_clock_c      : time := (1 sec) / f_clock_c;
     component wishbone_mem is
         port (
@@ -56,7 +56,7 @@ begin
         wb_tag_i => "000",
         wb_adr_i => wb_adr,
         --wb_dat_0 => '0',
-        wb_dat_i => "00000000000000000000000000000000",
+        wb_dat_i => "11111111111111111111111111111111",
         wb_we_i => wb_we,
         wb_sel_i => "0000",
         wb_stb_i => wb_stb,

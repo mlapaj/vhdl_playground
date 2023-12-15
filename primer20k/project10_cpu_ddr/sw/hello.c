@@ -37,10 +37,10 @@ int main() {
   neorv32_uart0_puts("Hello world! :)\n");
   int j = 0;
   while (1){
-      neorv32_uart_getc(NEORV32_UART0);
+      //neorv32_uart_getc(NEORV32_UART0);
       neorv32_uart_puts(NEORV32_UART0,"Pressed a key! :)\n");
       neorv32_gpio_port_set(0x0);
-      neorv32_uart_getc(NEORV32_UART0);
+      //neorv32_uart_getc(NEORV32_UART0);
       int i = 0;
       void *x  = (void *) 0xC000;
       neorv32_uart_printf(NEORV32_UART0,"write:\n");
@@ -53,10 +53,18 @@ int main() {
       neorv32_uart_printf(NEORV32_UART0,"dump:\n");
       for (i = 0; i < 20; i=i+4){
           neorv32_uart_printf(NEORV32_UART0,"%x ", ((unsigned int *) x)[i]);
+#if 1
+          if (((unsigned int *) x)[i] != i+j)
+          {
+              neorv32_uart_printf(NEORV32_UART0,"err %x ", ((unsigned int *) x)[i]);
+              while (1) ;
+          }
+#endif
       }
       neorv32_uart_printf(NEORV32_UART0,"\n");
       neorv32_gpio_port_set(0xF);
       j=j+1;
+      if (j > 1024) j = 0;
   }
   return 0;
 }
