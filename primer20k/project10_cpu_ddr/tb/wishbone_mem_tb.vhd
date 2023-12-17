@@ -11,7 +11,7 @@ architecture basic of wishbone_mem_tb is
     signal gen_clk: std_logic := '0';
     signal gen_pll_clk: std_logic := '0';
     signal gen_rstn: std_logic := '0';
-    constant f_pll_clock_c  : natural := 100000000; -- pll clock in Hz
+    constant f_pll_clock_c  : natural := 200000000; -- pll clock in Hz
     constant t_pll_clock_c  : time := (1 sec) / f_pll_clock_c;
     constant f_clock_c      : natural := 27000000; -- main clock in Hz
     constant t_clock_c      : time := (1 sec) / f_clock_c;

@@ -112,14 +112,17 @@ architecture basic of wishbone_mem is
 
     type t_WBState is (WB_Init, WB_Ready, WB_Read, WB_Read2, WB_Write, WB_Write2 );
     signal WBState : t_WBState := WB_Init;
-    signal read_ack : std_logic;
     signal read_data: std_logic_vector(127 downto 0);
-    signal write_ack : std_logic;
+    signal send_ack : std_logic;
+    signal inputFF: std_logic;
     signal io_stb_cnt: integer range 0 to 2;
     signal io_rd_cnt: integer range 0 to 2;
     signal io_wb_cnt: integer range 0 to 2;
     type t_DDRState is (DDR_Init, DDR_Ready, DDR_ReadWait, DDR_ReadWait2,  DDR_WriteWait , DDR_WriteWait2);
     signal DDRState : t_DDRState := DDR_Init;
+
+    signal inputFF2: std_logic;
+    signal wb_stb_stable: std_logic;
 
 begin
     --dbg_led <= '1';
@@ -169,117 +172,76 @@ begin
 
 
 
+
     process (clk_i)
     begin
         if rising_edge(clk_i) then
-            -- add reset handling later
-            if WBState = WB_Init then
-                wb_err_o <= '0';
-                wb_ack_o <= '0';
-                WBState <= WB_Ready;
-            elsif WBState = WB_Ready then
-                if (wb_stb_i = '1') and (wb_cyc_i = '1') and (wb_we_i = '0') and wb_ack_o = '0' then
-                    WBState <= WB_Read;
-                elsif (wb_stb_i = '1') and (wb_cyc_i = '1') and (wb_we_i = '1') and wb_ack_o = '0' then
-                    WBState <= WB_Write;
-                end if;
-                if (wb_stb_i = '0') then
-                    wb_ack_o <= '0';
-                end if;
-            elsif WBState = WB_Read then
-                WBState <= WB_Read2;
-            elsif WBState = WB_Read2 then
-                if (read_ack = '1') then
-                    wb_ack_o <= '1';
-                    WBState <= WB_Ready;
-                end if;
-            elsif WBState = WB_Write then
-                WBState <= WB_Write2;
-            elsif WBState = WB_Write2 then
-                if (write_ack = '1') then
-                    wb_ack_o <= '1';
-                    WBState <= WB_Ready;
-                end if;
-            end if;
+            inputFF  <= send_ack;
+            wb_ack_o <= inputFF;
+            --wb_ack_o <= send_ack;
         end if;
     end process;
 
-
+    process (clk_x1_o)
+    begin
+        if rising_edge(clk_x1_o) then
+            --inputFF2  <= wb_stb_i;
+            --wb_stb_stable <= inputFF2;
+            wb_stb_stable <= wb_stb_i;
+        end if;
+    end process;
 
     process (clk_x1_o)
+        variable tmp_send_ack: std_logic;
     begin
         if rising_edge(clk_x1_o) then
             if DDRState = DDR_Init then
                 cmd_en_i <= '0';
                 wr_data_end_i <= '0';
                 wr_data_en_i <= '0';
-                read_ack <= '0';
-                write_ack <= '0';
+                send_ack <= '0';
                 DDRState <= DDR_Ready;
-                io_rd_cnt <= 0;
-                io_wb_cnt <= 0;
-                io_stb_cnt <= 0;
                 wb_dat_o <= (others => '0');
+                tmp_send_ack := '0';
                 report "ddr init";
             elsif DDRState = DDR_Ready then
-                if (wb_stb_i = '1') and (wb_cyc_i = '1') and (wb_we_i = '0') and (read_ack = '0') and cmd_ready_o = '1'  then
-                    if (io_rd_cnt = 1) then
-                        -- read
-                        cmd_i <= "001";
-                        cmd_en_i <= '1';
-                        addr_i  <= to_stdlogicvector(wb_adr_i(27 downto 0));
-                        DDRState <= DDR_ReadWait;
-                        io_rd_cnt <= 0;
-                    else
-                        io_rd_cnt <= io_rd_cnt + 1;
-                    end if;
-                elsif (wb_stb_i = '1') and (wb_cyc_i = '1') and (wb_we_i = '1')
-                      and write_ack = '0' and cmd_ready_o = '1' and wr_data_rdy_o = '1' then
-                    if (io_wb_cnt = 1) then
-                        -- write
-                        cmd_i <= "000";
-                        cmd_en_i <= '1';
-                        addr_i  <= to_stdlogicvector(wb_adr_i(27 downto 0));
-                        wr_data_i <=  (31 downto 0 => wb_dat_i, others => '0');
-                        wr_data_en_i <= '1';
-                        wr_data_end_i <= '1';
-                        io_wb_cnt <= 0;
-                        DDRState <= DDR_WriteWait;
-                    else
-                        io_wb_cnt <= io_wb_cnt + 1;
-                    end if;
-                elsif wb_stb_i = '0'  then
-                    -- not sure if it is handled correctly
-                    if (io_stb_cnt = 1) then
-                        read_ack <= '0';
-                        write_ack <= '0';
-                        io_stb_cnt <= 0;
-                    else
-                        io_stb_cnt <= io_stb_cnt + 1;
-                    end if;
-
-                else
-                    io_rd_cnt <= 0;
-                    io_wb_cnt <= 0;
-                    io_stb_cnt <= 0;
+                if (wb_ack_o = '1') then
+                    send_ack <= '0';
+                    tmp_send_ack := '0';
                 end if;
+                if (wb_stb_stable = '1') and (wb_cyc_i = '1') and (wb_we_i = '0') and cmd_ready_o = '1' and (wb_ack_o = '0') and (tmp_send_ack = '0')  then
+                    cmd_i <= "001";
+                    cmd_en_i <= '1';
+                    addr_i  <= to_stdlogicvector(wb_adr_i(27 downto 0));
+                    DDRState <= DDR_ReadWait;
+                    -- should we use send_ack or wb_ack_here ?
+                elsif (wb_stb_stable = '1') and (wb_cyc_i = '1') and (wb_we_i = '1')
+                       and wb_ack_o = '0' and tmp_send_ack = '0' and cmd_ready_o = '1' and wr_data_rdy_o = '1' then
+                    cmd_i <= "000";
+                    cmd_en_i <= '1';
+                    addr_i  <= to_stdlogicvector(wb_adr_i(27 downto 0));
+                    wr_data_i <=  (31 downto 0 => wb_dat_i, others => '0');
+                    wr_data_en_i <= '1';
+                    wr_data_end_i <= '1';
+                    DDRState <= DDR_WriteWait;
+                end if;
+                -- check if send ack is ok
             elsif DDRState = DDR_ReadWait then
                 cmd_en_i <= '0';
-                if rd_data_valid_o = '1' and rd_data_end_o = '1' then
+                 if rd_data_valid_o = '1' then
                     wb_dat_o <= to_stdulogicvector(rd_data_o(31 downto 0));
-                    DDRState <= DDR_ReadWait2;
+                    --wb_dat_o <= (others => '1');
+                    send_ack  <= '1';
+                    tmp_send_ack := '1';
+                    DDRState <= DDR_Ready;
                 end if;
-            elsif DDRState = DDR_ReadWait2 then
-                read_ack  <= '1';
-                DDRState <= DDR_Ready;
             elsif DDRState = DDR_WriteWait then
                 cmd_en_i <= '0';
                 wr_data_en_i <= '0';
                 wr_data_end_i <= '0';
-                DDRState <= DDR_WriteWait2;
-            elsif DDRState = DDR_WriteWait2 then
-                write_ack  <= '1';
                 DDRState <= DDR_Ready;
+                tmp_send_ack := '1';
+                send_ack  <= '1';
             end if;
         end if;
 end process;
