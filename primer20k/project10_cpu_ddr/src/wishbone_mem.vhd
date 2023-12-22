@@ -124,6 +124,9 @@ architecture basic of wishbone_mem is
     signal inputFF2: std_logic;
     signal wb_stb_stable: std_logic;
 
+    signal ddr_offset: std_logic_vector(1 downto 0);
+    signal wr_data_mask: std_logic_vector(15 downto 0);
+
 begin
     --dbg_led <= '1';
     my_ddr : DDR3_Memory_Interface_Top
@@ -140,7 +143,7 @@ begin
                  wr_data => wr_data_i,
                  wr_data_en => wr_data_en_i,
                  wr_data_end => wr_data_end_i,
-                 wr_data_mask => "0000000000000000",
+                 wr_data_mask => wr_data_mask,
                  rd_data => rd_data_o,
                  rd_data_valid => rd_data_valid_o,
                  rd_data_end => rd_data_end_o,
@@ -193,6 +196,8 @@ begin
 
     process (clk_x1_o)
         variable tmp_send_ack: std_logic;
+        variable wr_ddr_offset: std_logic_vector(1 downto 0);
+
     begin
         if rising_edge(clk_x1_o) then
             if DDRState = DDR_Init then
@@ -203,6 +208,7 @@ begin
                 DDRState <= DDR_Ready;
                 wb_dat_o <= (others => '0');
                 tmp_send_ack := '0';
+                wr_data_mask <= "0000000000000000";
                 report "ddr init";
             elsif DDRState = DDR_Ready then
                 if (wb_ack_o = '1') then
@@ -212,15 +218,29 @@ begin
                 if (wb_stb_stable = '1') and (wb_cyc_i = '1') and (wb_we_i = '0') and cmd_ready_o = '1' and (wb_ack_o = '0') and (tmp_send_ack = '0')  then
                     cmd_i <= "001";
                     cmd_en_i <= '1';
-                    addr_i  <= to_stdlogicvector(wb_adr_i(27 downto 0));
+                    addr_i  <= to_stdlogicvector(wb_adr_i(27 downto 4)) & "0000";
+                    ddr_offset <= to_stdlogicvector(wb_adr_i(3 downto 2));
                     DDRState <= DDR_ReadWait;
                     -- should we use send_ack or wb_ack_here ?
                 elsif (wb_stb_stable = '1') and (wb_cyc_i = '1') and (wb_we_i = '1')
                        and wb_ack_o = '0' and tmp_send_ack = '0' and cmd_ready_o = '1' and wr_data_rdy_o = '1' then
                     cmd_i <= "000";
                     cmd_en_i <= '1';
-                    addr_i  <= to_stdlogicvector(wb_adr_i(27 downto 0));
-                    wr_data_i <=  (31 downto 0 => wb_dat_i, others => '0');
+                    addr_i  <= to_stdlogicvector(wb_adr_i(27 downto 4)) & "0000";
+                    wr_ddr_offset := to_stdlogicvector(wb_adr_i(3 downto 2));
+                    if (wr_ddr_offset = "00") then
+                        wr_data_i <=  (31 downto 0 => wb_dat_i, others => '0');
+                        wr_data_mask <= not "0000000000001111";
+                    elsif (wr_ddr_offset = "01") then
+                        wr_data_i <=  (63 downto 32 => wb_dat_i, others => '0');
+                        wr_data_mask <= not "0000000011110000";
+                    elsif (wr_ddr_offset = "10") then
+                        wr_data_i <=  (95 downto 64 => wb_dat_i, others => '0');
+                        wr_data_mask <= not "0000111100000000";
+                    elsif (wr_ddr_offset = "11") then
+                        wr_data_mask <= not "1111000000000000";
+                        wr_data_i <=  (127 downto 96 => wb_dat_i, others => '0');
+                    end if;
                     wr_data_en_i <= '1';
                     wr_data_end_i <= '1';
                     DDRState <= DDR_WriteWait;
@@ -229,7 +249,15 @@ begin
             elsif DDRState = DDR_ReadWait then
                 cmd_en_i <= '0';
                  if rd_data_valid_o = '1' then
-                    wb_dat_o <= to_stdulogicvector(rd_data_o(31 downto 0));
+                     if (ddr_offset = "00") then
+                         wb_dat_o <= to_stdulogicvector(rd_data_o(31 downto 0));
+                     elsif (ddr_offset = "01") then
+                         wb_dat_o <= to_stdulogicvector(rd_data_o(63 downto 32));
+                     elsif (ddr_offset = "10") then
+                         wb_dat_o <= to_stdulogicvector(rd_data_o(95 downto 64));
+                     elsif (ddr_offset = "11") then
+                         wb_dat_o <= to_stdulogicvector(rd_data_o(127 downto 96));
+                     end if;
                     --wb_dat_o <= (others => '1');
                     send_ack  <= '1';
                     tmp_send_ack := '1';

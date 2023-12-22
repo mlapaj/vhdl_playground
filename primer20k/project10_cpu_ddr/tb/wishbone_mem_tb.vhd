@@ -56,7 +56,7 @@ begin
         wb_tag_i => "000",
         wb_adr_i => wb_adr,
         --wb_dat_0 => '0',
-        wb_dat_i => "11111111111111111111111111111111",
+        wb_dat_i => "00010001001000100011001101000100",
         wb_we_i => wb_we,
         wb_sel_i => "0000",
         wb_stb_i => wb_stb,
@@ -74,7 +74,7 @@ begin
                 wb_cyc <= '0';
                 wb_adr <= (others => '0');
                 wb_we <= '0';
-                TestState <= TestRead;
+                TestState <= TestWrite;
             else
                 if (TestState = TestRead) then
                     if test_cnt = 0 or test_cnt = 1 or test_cnt = 2 then
@@ -86,8 +86,8 @@ begin
                     end if;
                     if test_cnt = 10 then
                         test_cnt <= 0;
-                        wb_adr <= wb_adr + "1";
-                        TestState <= TestWrite;
+                        wb_adr <= wb_adr + "100";
+                        TestState <= TestRead;
                     else
                         test_cnt <= test_cnt + 1;
                     end if;
@@ -102,9 +102,9 @@ begin
                         wb_we <= '0';
                     end if;
                     if test_cnt = 10 then
-                        TestState <= TestRead;
+                        TestState <= TestWrite;
                         test_cnt <= 0;
-                        wb_adr <= wb_adr + "1";
+                        wb_adr <= wb_adr + "100";
                     else
                         test_cnt <= test_cnt + 1;
                     end if;
