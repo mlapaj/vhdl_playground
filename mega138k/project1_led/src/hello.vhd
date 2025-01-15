@@ -8,6 +8,5 @@ end hello;
 
 architecture basic of hello is
 begin
---    C <= not (A and B);
 	C <= not (A or B);
 end basic;
