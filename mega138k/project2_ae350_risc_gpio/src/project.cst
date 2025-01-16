@@ -51,6 +51,14 @@ IO_LOC "FLASH_SPI_HOLDN"  R21;    //DO[3]
 IO_LOC  "UART2_TXD"           C20;
 IO_LOC  "UART2_RXD"           D20;
 
+//IO_LOC  "UART2_TXD"           U15;
+//IO_PORT "UART2_TXD"           IO_TYPE=LVCMOS33 PULL_MODE=UP DRIVE=8 BANK_VCCIO=3.3;
+
+//For Version 31004 or later
+//IO_LOC  "UART2_RXD"           V14;
+//IO_PORT "UART2_RXD"           IO_TYPE=LVCMOS33 PULL_MODE=UP BANK_VCCIO=3.3;
+
+
 
 //====== DDR3 ======
 IO_LOC  "DDR3_BANK[2]"   M6;
