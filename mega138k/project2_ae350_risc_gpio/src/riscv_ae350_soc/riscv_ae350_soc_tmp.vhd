@@ -5,7 +5,7 @@
 --Part Number: GW5AST-LV138PG484AC1/I0
 --Device: GW5AST-138
 --Device Version: B
---Created Time: Mon Jan 13 09:32:32 2025
+--Created Time: Fri Jan 17 14:59:18 2025
 
 --Change the instance name and port connections to the signal names
 ----------Copy here to design--------
@@ -45,6 +45,12 @@ component RiscV_AE350_SOC_Top
 		TDI_IN: in std_logic;
 		TDO_OUT: out std_logic;
 		TDO_OE: out std_logic;
+		SPI_HOLDN: inout std_logic;
+		SPI_WPN: inout std_logic;
+		SPI_CLK: inout std_logic;
+		SPI_CSN: inout std_logic;
+		SPI_MISO: inout std_logic;
+		SPI_MOSI: inout std_logic;
 		UART2_TXD: out std_logic;
 		UART2_RTSN: out std_logic;
 		UART2_RXD: in std_logic;
@@ -103,6 +109,12 @@ your_instance_name: RiscV_AE350_SOC_Top
 		TDI_IN => TDI_IN,
 		TDO_OUT => TDO_OUT,
 		TDO_OE => TDO_OE,
+		SPI_HOLDN => SPI_HOLDN,
+		SPI_WPN => SPI_WPN,
+		SPI_CLK => SPI_CLK,
+		SPI_CSN => SPI_CSN,
+		SPI_MISO => SPI_MISO,
+		SPI_MOSI => SPI_MOSI,
 		UART2_TXD => UART2_TXD,
 		UART2_RTSN => UART2_RTSN,
 		UART2_RXD => UART2_RXD,
