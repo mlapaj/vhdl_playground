@@ -29,10 +29,11 @@ reset_vector:
 	.type _start,@function
 
 _start:
+    //j .
 	/* Initialize global pointer */
 	.option push
 	.option norelax
-	la gp, __global_pointer$
+	//la gp, __global_pointer$
 	.option pop
 
 	/* Initialize stack pointer */
@@ -41,28 +42,28 @@ _start:
 
 #ifdef __nds_execit
 	/* Initialize EXEC.IT table */
-	la t0, _ITB_BASE_
-	csrw uitb, t0
+	//la t0, _ITB_BASE_
+	//csrw uitb, t0
 #endif
 
 #ifdef __riscv_flen
 	/* Enable FPU */
-	li t0, MSTATUS_FS
-	csrrs t0, mstatus, t0
+	//li t0, MSTATUS_FS
+	//csrrs t0, mstatus, t0
 
 	/* Initialize FCSR */
-	fscsr zero
+	//fscsr zero
 #endif
 
 	/* Initial machine trap-vector Base */
-	la t0, trap_entry
-	csrw mtvec, t0
+	//la t0, trap_entry
+	//csrw mtvec, t0
 
 	/* Do system low level setup. It must be a leaf function */
 	call __platform_init
 
 	/* System reset handler */
-	call reset_handler
+	call main
 
 	/* Infinite loop, if returned accidently */
 1:	j 1b
@@ -71,10 +72,11 @@ _start:
 __platform_init:
 	ret
 
-	.weak nmi_handler
+       .weak nmi_handler
 nmi_handler:
-1:	j 1b
+1:     j 1b
 
-	.weak trap_handler
+       .weak trap_handler
 trap_handler:
-1:	j 1b
+1:     j 1b
+

@@ -1,5 +1,11 @@
+set logging file mylog.txt
+set logging on
 set pagination off
-file hello_world
+set disassemble-next-line on
 target remote localhost:2331
-mon reset
+file hello_world
+monitor reset
 restore hello_world
+set $pc = _start
+#c
+

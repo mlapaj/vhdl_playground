@@ -28,37 +28,11 @@ __attribute__((weak)) void reset_handler(void)
 {
 	extern int main(void);
 
-	/*
-	 * Initialize LMA/VMA sections.
-	 * Relocation for any sections that need to be copied from LMA to VMA.
-	 */
-	c_startup();
 
 	/* Call platform specific hardware initialization */
-	system_init();
+	//system_init();
 
-	/* Do global constructors */
-	__libc_init_array();
+    main();
 
-#ifdef CFG_GCOV
-	/* Register global destructors to be called upon exit */
-	atexit(__libc_fini_array);
-
-	/* Entry function */
-	exit(main());
-#else
-	/* Entry function */
-	main();
-#endif
 }
 
-/*
- * When compiling C++ code with static objects, the compiler inserts
- * a call to __cxa_atexit() with __dso_handle as one of the arguments.
- * The dummy versions of these symbols should be provided.
- */
-void __cxa_atexit(void (*arg1)(void*), void* arg2, void* arg3)
-{
-}
-
-__attribute__((weak)) void *__dso_handle = (void*) &__dso_handle;
