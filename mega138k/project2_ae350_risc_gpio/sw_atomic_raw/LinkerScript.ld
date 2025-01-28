@@ -2,8 +2,8 @@
 ENTRY(_start)
 SECTIONS
 {
-	PROVIDE (__executable_start = 0x000000);
-	NDS_SAG_LMA_HEAD = 0xA00000 ;
+	PROVIDE (__executable_start = 0x00000000);
+	NDS_SAG_LMA_HEAD = 0x00000000 ;
 	. = 0x80000000;
 	__flash_start = .;
 	.bootloader .	: AT(NDS_SAG_LMA_HEAD)	{ KEEP(*(.bootloader )) }
@@ -14,7 +14,7 @@ SECTIONS
 	__loader_start = ADDR(.loader);
 	__loader_lmaend =  LOADADDR (.loader) + SIZEOF (.loader);
 	NDS_SAG_LMA_MEM = ALIGN (LOADADDR(.loader) + SIZEOF (.loader) + 0, 256);
-	. = 0x00000;
+	. = 0x00000000;
 	.vector_table .	: AT(NDS_SAG_LMA_MEM)	{ *(.vector_table ) }
 	__text_lmastart =  LOADADDR (.vector_table);
 	__text_start = ADDR(.vector_table);

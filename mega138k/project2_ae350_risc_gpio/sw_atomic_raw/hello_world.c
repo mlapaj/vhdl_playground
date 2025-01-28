@@ -32,8 +32,8 @@ void enable_l1_cache()
 	 * and CM (Coherence Manager).
 	 */
 	/* CSR: control and status register */
-	clear_csr(NDS_MCACHE_CTL, (3 << 13));
-	set_csr(NDS_MCACHE_CTL, (1 << 19) | (1 << 13) | (1 << 10) | (1 << 9) | (1 << 1) | (1 << 0));
+	clear_csr(NDS_MCACHE_CTL, (3 << 13)); // see csr.h in uboot in  arch/riscv/include/asm/arch-andes
+	set_csr(NDS_MCACHE_CTL, (1 << 19) | (1 << 13) | (1 << 10) | (1 << 9) | (1 << 8) | (1 << 1) | (1 << 0)); // see AE350 soc 6.2 chapter cache control register
 
 	/* Check if CPU support CM or not. */
 	if (read_csr(NDS_MCACHE_CTL) & (1 << 19))
@@ -42,12 +42,13 @@ void enable_l1_cache()
 		while((read_csr(NDS_MCACHE_CTL) & (1 << 20)) == 0);
 	}
 
-}
+    #define CSR_MMISC_CTL 0x7d0
+    /* mmisc_ctl register */
+    #define MMISC_CTL_NON_BLOCKING_EN       (1 << 8)
+    unsigned long mmisc_ctl_val = read_csr(CSR_MMISC_CTL);
+    mmisc_ctl_val |= MMISC_CTL_NON_BLOCKING_EN;
+    set_csr(CSR_MMISC_CTL, mmisc_ctl_val);
 
-void flush_cache() {
-    int *ptr = (void *) 0x40000;
-    *ptr = 24;
-//    asm volatile("fence");
 }
 
 
@@ -81,8 +82,8 @@ void amoswapw_func(void)
 	oldv = __nds__amoswapw(newv, ptr, UNORDER);
 
     uart_puts("Done\n"); 
-    /* asm("mv a6, a4"); */
-    /* asm("amoswap.w a6, a7, (a6)"); */
+
+    
     asm("j .");
 
 }
