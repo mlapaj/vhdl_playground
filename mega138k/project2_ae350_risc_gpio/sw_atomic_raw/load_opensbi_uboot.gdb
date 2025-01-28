@@ -28,8 +28,13 @@ set $a1=0x200000
 b *0x400000
 c
 file u-boot-sbi
+## WARNING: THIS IS TEMPORARY HACK - it removes "fence" instruction before "amoswap.w" in u-boot
+## see u-boot/arch/riscv/cpu/start.S
+## GCC is adding fence before each amoswap.w. I did not found the way to disable it
+## so for now i`m edting this in memory.
+## most probably, these ofsets may change and you need to check it by yourself
 set {unsigned char[4]} (call_harts_early_init+20) = {0x13, 0x00, 0x00, 0x00}
-set {unsigned char[4]} (call_harts_early_init+60) = {0x13, 0x00, 0x00, 0x00}   
+set {unsigned char[4]} (call_harts_early_init+60) = {0x13, 0x00, 0x00, 0x00}
 set {unsigned char[4]} (wait_for_gd_init+16) = {0x13, 0x00, 0x00, 0x00}
 set {unsigned char[4]} (wait_for_gd_init+48) = {0x13, 0x00, 0x00, 0x00}
 b 0x3FF70000
